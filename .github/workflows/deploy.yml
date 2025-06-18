@@ -37,8 +37,8 @@ jobs:
         key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
         restore-keys: ${{ runner.os }}-composer-
         
-    - name: Install PHP dependencies
-      run: composer install --no-dev --optimize-autoloader --no-interaction
+    - name: Install PHP dependencies (sadece composer.lock doğrulaması için)
+      run: composer validate --no-check-all --strict
       
     - name: Install NPM dependencies (sadece build için)
       run: npm ci
@@ -51,7 +51,7 @@ jobs:
         # Deployment için gerekli dosyaları kopyala
         mkdir -p deployment
         
-        # Laravel dosyalarını kopyala
+        # Laravel dosyalarını kopyala (vendor hariç - sunucuda composer install yapılacak)
         cp -r app deployment/
         cp -r bootstrap deployment/
         cp -r config deployment/
@@ -60,7 +60,6 @@ jobs:
         cp -r resources deployment/
         cp -r routes deployment/
         cp -r storage deployment/
-        cp -r vendor deployment/
         
         # Root dosyalarını kopyala
         cp artisan deployment/
@@ -95,6 +94,7 @@ jobs:
           **/.git*
           **/.git*/**
           **/node_modules/**
+          **/vendor/**
           **/tests/**
           **/*.md
         

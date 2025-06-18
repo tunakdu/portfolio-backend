@@ -5,6 +5,10 @@
 
 echo "🚀 Post-deployment script başlatılıyor..."
 
+# Composer dependencies yükle (vendor klasörü FTP ile gönderilmedi)
+echo "📦 Composer dependencies yükleniyor..."
+composer install --no-dev --optimize-autoloader --no-interaction
+
 # .env dosyasını kontrol et
 if [ ! -f .env ]; then
     if [ -f .env.production ]; then

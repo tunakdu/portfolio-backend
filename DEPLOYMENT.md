@@ -64,14 +64,16 @@ IMAP_ENCRYPTION=ssl
 ### 2. Post-Deployment Script
 İlk deployment'tan sonra sunucuda şu komutları çalıştırın:
 
+**⚡ Önemli**: vendor klasörü FTP ile gönderilmez (45 dakika sürerdi), sunucuda composer install yapılır.
+
 ```bash
-# Sunucunuzda SSH ile bağlanın
+# Sunucunuzda SSH ile bağlanın veya cPanel File Manager kullanın
 ssh username@yourdomain.com
 
 # Sitenizin klasörüne gidin
 cd public_html # veya htdocs
 
-# Post-deployment script'i çalıştırın
+# Post-deployment script'i çalıştırın (vendor klasörünü oluşturur)
 chmod +x deploy-post.sh
 ./deploy-post.sh
 ```
@@ -106,11 +108,13 @@ GitHub repository'nizde **Actions** sekmesinden deployment durumunu takip edebil
 ## ⚠️ Önemli Notlar (Paylaşımlı Sunucu)
 
 - **Node.js kurulumu gerekmez** - Vue.js asset'leri GitHub Actions'da build edilir
+- **vendor klasörü FTP ile gönderilmez** - sunucuda composer install yapılır (hız için)
 - İlk deployment'tan sonra mutlaka sunucuda `./deploy-post.sh` script'ini çalıştırın
 - Database migration'ları otomatik çalışır
 - Vue.js asset'leri (CSS/JS) önceden build edilmiş olarak gelir
 - cPanel mail credentials'larını `.env` dosyasına eklemeyi unutmayın
 - PHP 8.2+ ve IMAP extension'ının aktif olduğundan emin olun
+- **Deployment süresi**: ~2-3 dakikaya düştü (vendor olmadan)
 
 ## 🆘 Sorun Giderme
 
