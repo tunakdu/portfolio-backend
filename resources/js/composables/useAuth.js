@@ -77,16 +77,34 @@ export const useAuth = () => {
       try {
         const response = await axios.get('/api/auth/me');
         user.value = response.data.user;
+        return true;
       } catch (error) {
-        // Token geçersiz, logout yap
-        await logout();
+        console.error('Auth check failed:', error);
+        // Token geçersiz, state'i temizle
+        token.value = null;
+        user.value = null;
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        delete axios.defaults.headers.common['Authorization'];
+        throw error;
       }
+    } else {
+      // Token yok, state'i temizle
+      token.value = null;
+      user.value = null;
+      delete axios.defaults.headers.common['Authorization'];
+      return false;
     }
   };
 
   // Uygulama başlarken auth durumunu kontrol et
   const initAuth = async () => {
-    await checkAuth();
+    try {
+      await checkAuth();
+    } catch (error) {
+      // Başlangıçta hata varsa sessizce devam et
+      console.warn('Initial auth check failed');
+    }
   };
 
   return {

@@ -9,6 +9,8 @@ import { createApp } from 'vue';
 import router from './router';
 import App from './components/App.vue';
 import { MotionPlugin } from '@vueuse/motion';
+import { useAuth } from './composables/useAuth';
+import axios from 'axios';
 
 /**
  * Next, we will create a fresh Vue application instance. You may then begin
@@ -16,12 +18,24 @@ import { MotionPlugin } from '@vueuse/motion';
  * to use in your application's views. An example is included for you.
  */
 
+// Auth interceptor setup
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token geçersiz, logout yap
+      const { logout } = useAuth();
+      logout();
+    }
+    return Promise.reject(error);
+  }
+);
+
 const app = createApp(App);
 app.use(router);
 app.use(MotionPlugin);
 
-// Auth'u initialize et
-import { useAuth } from './composables/useAuth.js';
+// Auth initialization
 const { initAuth } = useAuth();
 initAuth();
 

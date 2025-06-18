@@ -15,6 +15,56 @@
             <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
               {{ unreadCount }} Okunmamış
             </span>
+            <div class="flex items-center">
+              <div :class="[
+                'w-2 h-2 rounded-full mr-2',
+                isAutoSyncEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+              ]"></div>
+              <span class="text-xs text-gray-500">
+                {{ isAutoSyncEnabled ? 'Otomatik dinliyor' : 'Manuel mod' }}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <!-- Otomatik Sync Toggle -->
+            <div class="flex items-center space-x-2">
+              <label class="inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  v-model="isAutoSyncEnabled" 
+                  @change="toggleAutoSync"
+                  class="sr-only"
+                >
+                <div :class="[
+                  'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                  isAutoSyncEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                ]">
+                  <span :class="[
+                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                    isAutoSyncEnabled ? 'translate-x-5' : 'translate-x-0'
+                  ]"></span>
+                </div>
+                <span class="ml-2 text-sm font-medium text-gray-700">
+                  {{ isAutoSyncEnabled ? 'Otomatik Açık' : 'Otomatik Kapalı' }}
+                </span>
+              </label>
+            </div>
+            
+            <!-- Manuel Sync Butonu -->
+            <button
+              @click="syncGmail"
+              :disabled="isSyncing"
+              class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              <svg v-if="isSyncing" class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 4v12l-4-2-4 2V4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              {{ isSyncing ? 'Senkronize Ediliyor...' : 'Manuel Senkronize Et' }}
+            </button>
           </div>
         </div>
       </div>
@@ -56,9 +106,9 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
+      <div class="grid grid-cols-1 lg:grid-cols-6 gap-6 h-[calc(100vh-12rem)]">
         <!-- Messages List - Sol Taraf -->
-        <div class="flex flex-col">
+        <div class="flex flex-col lg:col-span-2">
           <!-- Filters -->
           <div class="modern-card p-4 mb-6">
             <div class="flex flex-col sm:flex-row gap-4">
@@ -124,7 +174,7 @@
                 </div>
                 <div class="ml-4 text-xs text-gray-500">
                   <Clock class="w-3 h-3 inline mr-1" />
-                  {{ formatDate(message.createdAt) }}
+                  {{ formatDate(message.created_at) }}
                 </div>
               </div>
             </div>
@@ -132,7 +182,7 @@
         </div>
 
         <!-- Message Preview - Sağ Taraf -->
-        <div class="flex flex-col">
+        <div class="flex flex-col lg:col-span-4">
           <div v-if="selectedMessage">
             <!-- Action Bar -->
             <div class="modern-card p-4 mb-4">
@@ -185,17 +235,18 @@
                   </div>
                   <div class="flex items-center space-x-2">
                     <span class="font-medium">Tarih:</span>
-                    <span>{{ formatDate(selectedMessage.createdAt) }}</span>
+                    <span>{{ formatDate(selectedMessage.created_at) }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- Content -->
-              <div class="p-6 flex-1 overflow-y-auto">
-                <div class="prose max-w-none">
-                  <p class="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                    {{ selectedMessage.message }}
-                  </p>
+              <div class="p-8 flex-1 overflow-y-auto">
+                <div class="prose prose-lg max-w-none">
+                  <div 
+                    v-html="selectedMessage.message" 
+                    class="text-gray-800 leading-loose message-content"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -215,7 +266,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Mail, MailOpen, Clock, CheckCircle, XCircle, Search, Filter } from 'lucide-vue-next';
 import { useAuth } from '../../composables/useAuth.js';
@@ -232,6 +283,9 @@ const searchTerm = ref('');
 const statusFilter = ref('ALL');
 const selectedMessage = ref(null);
 const activeTab = ref('CONTACT_FORM');
+const isSyncing = ref(false);
+const autoSyncInterval = ref(null);
+const isAutoSyncEnabled = ref(true); // Varsayılan olarak açık
 
 const statusConfig = {
   UNREAD: { label: 'Okunmadı', color: 'bg-red-100 text-red-800', icon: Mail },
@@ -254,7 +308,7 @@ const filteredMessages = computed(() => {
   return currentMessages.value.filter(message => {
     const matchesSearch = message.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
                          message.email.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-                         message.subject.toLowerCase().includes(searchTerm.value.toLowerCase());
+                         (message.subject || '').toLowerCase().includes(searchTerm.value.toLowerCase());
     const matchesStatus = statusFilter.value === 'ALL' || message.status === statusFilter.value;
     return matchesSearch && matchesStatus;
   });
@@ -262,50 +316,71 @@ const filteredMessages = computed(() => {
 
 const fetchMessages = async () => {
   try {
+    isLoading.value = true;
     const response = await axios.get('/api/messages');
-    contactMessages.value = response.data.map(msg => ({
-      ...msg,
-      source: 'CONTACT_FORM'
-    }));
+    
+    // Tüm mesajları source'a göre ayır
+    const allMessages = response.data.data || response.data || [];
+    
+    contactMessages.value = allMessages
+      .filter(msg => msg.subject === 'Web Sitesi İletişim Formu') // İletişim formu mesajları
+      .map(msg => ({
+        ...msg,
+        source: 'CONTACT_FORM',
+        status: msg.is_read ? 'READ' : 'UNREAD'
+      }));
+      
+    gmailMessages.value = allMessages
+      .filter(msg => msg.subject && msg.subject !== 'Web Sitesi İletişim Formu') // Gmail mesajları
+      .map(msg => ({
+        ...msg,
+        source: 'GMAIL',
+        status: msg.is_read ? 'READ' : 'UNREAD'
+      }));
+      
   } catch (error) {
-    console.error('Contact form messages fetch error:', error);
+    console.error('Messages fetch error:', error);
     contactMessages.value = [];
-  }
-};
-
-const fetchGmailMessages = async () => {
-  try {
-    // Mock data for Gmail messages since API might not be implemented
-    const mockGmailMessages = [
-      {
-        id: 'gmail-1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        subject: 'Project Inquiry',
-        message: 'I am interested in collaborating on a project...',
-        status: 'UNREAD',
-        createdAt: new Date().toISOString(),
-        source: 'GMAIL'
-      },
-      {
-        id: 'gmail-2',
-        name: 'Jane Smith',
-        email: 'jane@company.com',
-        subject: 'Business Proposal',
-        message: 'We have a business proposal that might interest you...',
-        status: 'read',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        source: 'GMAIL'
-      }
-    ];
-    gmailMessages.value = mockGmailMessages;
-  } catch (error) {
-    console.error('Gmail messages fetch error:', error);
     gmailMessages.value = [];
   } finally {
     isLoading.value = false;
   }
 };
+
+const syncGmail = async () => {
+  if (isSyncing.value) return;
+  
+  isSyncing.value = true;
+  
+  try {
+    const response = await axios.post('/api/messages/sync-gmail');
+    
+    // Başarı mesajı göster
+    await Swal.fire({
+      icon: 'success',
+      title: 'Gmail Senkronizasyonu',
+      text: response.data.message,
+      timer: 3000,
+      timerProgressBar: true
+    });
+    
+    // Listeyi her zaman yenile
+    await fetchMessages();
+    
+  } catch (error) {
+    console.error('Gmail sync error:', error);
+    
+    await Swal.fire({
+      icon: 'error',
+      title: 'Gmail Senkronizasyon Hatası',
+      text: error.response?.data?.message || 'Gmail senkronizasyonu sırasında bir hata oluştu.',
+    });
+  } finally {
+    isSyncing.value = false;
+  }
+};
+
+// Gmail mesajları artık fetchMessages içinde yükleniyor
 
 const handleStatusChange = async (messageId, newStatus) => {
   try {
@@ -409,7 +484,14 @@ const handleDelete = async (messageId) => {
 };
 
 const formatDate = (dateString) => {
+  if (!dateString) return 'Tarih yok';
+  
   const date = new Date(dateString);
+  
+  if (isNaN(date.getTime())) {
+    return 'Geçersiz tarih';
+  }
+  
   return date.toLocaleDateString('tr-TR', {
     year: 'numeric',
     month: 'short',
@@ -419,10 +501,90 @@ const formatDate = (dateString) => {
   });
 };
 
+// Otomatik Gmail senkronizasyonu (her 2 dakikada bir)
+const startAutoSync = () => {
+  // İlk yükleme
+  fetchMessages();
+  
+  // Her 2 dakikada bir otomatik senkronizasyon
+  autoSyncInterval.value = setInterval(async () => {
+    try {
+      console.log('Otomatik Gmail senkronizasyonu...');
+      const response = await axios.post('/api/messages/sync-gmail');
+      
+      if (response.data.new_messages_count > 0) {
+        console.log(`${response.data.new_messages_count} yeni Gmail mesajı bulundu`);
+        await fetchMessages(); // Listeyi yenile
+        
+        // Sessiz bildirim (toast)
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
+        
+        Toast.fire({
+          icon: 'info',
+          title: `${response.data.new_messages_count} yeni Gmail mesajı alındı`
+        });
+      }
+    } catch (error) {
+      console.error('Otomatik senkronizasyon hatası:', error);
+    }
+  }, 120000); // 2 dakika = 120000ms
+};
+
+const stopAutoSync = () => {
+  if (autoSyncInterval.value) {
+    clearInterval(autoSyncInterval.value);
+    autoSyncInterval.value = null;
+  }
+};
+
+const toggleAutoSync = () => {
+  if (isAutoSyncEnabled.value) {
+    startAutoSync();
+    
+    // Başlangıç bildirimi
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000
+    });
+    
+    Toast.fire({
+      icon: 'success',
+      title: 'Otomatik Gmail senkronizasyonu etkinleştirildi (Her 2 dakikada)'
+    });
+  } else {
+    stopAutoSync();
+    
+    // Kapatma bildirimi
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000
+    });
+    
+    Toast.fire({
+      icon: 'info',
+      title: 'Otomatik Gmail senkronizasyonu devre dışı bırakıldı'
+    });
+  }
+};
+
 onMounted(async () => {
   await checkAuth();
-  await fetchMessages();
-  await fetchGmailMessages();
+  startAutoSync();
+});
+
+// Component unmount olduğunda interval'i temizle
+onUnmounted(() => {
+  stopAutoSync();
 });
 </script>
 
@@ -436,5 +598,90 @@ onMounted(async () => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.message-content {
+  /* HTML içeriği için styling */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* HTML etiketleri için temel styling */
+:deep(.message-content) {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-gray-900 mb-4 mt-6;
+  }
+  
+  h1 { @apply text-2xl; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-lg; }
+  
+  p {
+    @apply mb-4 text-gray-800 leading-loose text-base;
+  }
+  
+  ul, ol {
+    @apply ml-6 mb-4;
+  }
+  
+  ul {
+    @apply list-disc;
+  }
+  
+  ol {
+    @apply list-decimal;
+  }
+  
+  li {
+    @apply mb-2 leading-relaxed;
+  }
+  
+  a {
+    @apply text-blue-600 hover:text-blue-800 underline;
+  }
+  
+  strong, b {
+    @apply font-semibold text-gray-900;
+  }
+  
+  em, i {
+    @apply italic;
+  }
+  
+  code {
+    @apply bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-sm font-mono;
+  }
+  
+  pre {
+    @apply bg-gray-100 p-4 rounded-lg overflow-x-auto mb-3;
+  }
+  
+  pre code {
+    @apply bg-transparent p-0;
+  }
+  
+  blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-3;
+  }
+  
+  table {
+    @apply w-full border-collapse border border-gray-300 mb-3;
+  }
+  
+  th, td {
+    @apply border border-gray-300 px-3 py-2 text-left;
+  }
+  
+  th {
+    @apply bg-gray-50 font-semibold;
+  }
+  
+  img {
+    @apply max-w-full h-auto rounded-lg shadow-sm mb-3;
+  }
+  
+  hr {
+    @apply border-gray-300 my-6;
+  }
 }
 </style>

@@ -74,11 +74,11 @@
                 Öne Çıkan
               </span>
             </div>
-            
+
             <p class="text-gray-600 text-sm mb-3 line-clamp-2">
               {{ project.description }}
             </p>
-            
+
             <div class="mb-4">
               <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium mb-2">
                 {{ project.category }}
@@ -121,7 +121,7 @@
                   <Eye class="w-4 h-4" />
                 </a>
               </div>
-              
+
               <div class="flex space-x-2">
                 <button
                   @click="router.push(`/admin/projects/${project.id}/edit`)"
@@ -161,12 +161,12 @@ const fetchProjects = async () => {
   try {
     const response = await axios.get('/api/projects');
     const data = response.data;
-    
+
     // Technologies field'ini parse et
     const parsedProjects = data.map((project) => ({
       ...project,
-      technologies: typeof project.technologies === 'string' 
-        ? JSON.parse(project.technologies) 
+      technologies: typeof project.technologies === 'string'
+        ? JSON.parse(project.technologies)
         : (project.technologies || [])
     }));
     projects.value = parsedProjects;
@@ -193,10 +193,10 @@ const handleDelete = async (id) => {
   if (result.isConfirmed) {
     try {
       await axios.delete(`/api/projects/${id}`);
-      
+
       // Remove from local state
       projects.value = projects.value.filter(p => p.id !== id);
-      
+
       Swal.fire({
         toast: true,
         position: 'top-end',

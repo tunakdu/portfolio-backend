@@ -3,9 +3,9 @@
     <div class="relative">
       <div class="bg-black/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-3 shadow-2xl">
         <div class="flex items-center justify-center space-x-2">
-          <!-- Menu Items -->
+          <!-- Normal Menu Items -->
           <div
-            v-for="(item, index) in currentItems"
+            v-for="(item, index) in menuItems"
             :key="item.href"
             class="relative"
             @mouseenter="hoveredIndex = index"
@@ -37,11 +37,11 @@
                 :class="[
                   'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
                   isActive(item.href)
-                    ? `bg-gradient-to-br ${item.color} shadow-md border border-white/30`
-                    : 'bg-white/75 hover:bg-white/85 backdrop-blur-sm border border-white/40 shadow-sm'
+                    ? `bg-gradient-to-br ${item.color} shadow-lg border border-white/30 scale-105`
+                    : `bg-gradient-to-br ${item.color} hover:scale-105 backdrop-blur-sm border border-white/20 shadow-sm opacity-80 hover:opacity-100`
                 ]"
               >
-                <component :is="item.icon" :class="['w-5 h-5 transition-all duration-300', isActive(item.href) ? 'text-white' : 'text-gray-700']" />
+                <component :is="item.icon" :class="['w-5 h-5 transition-all duration-300', 'text-white drop-shadow-sm']" />
               </div>
 
               <div
@@ -54,8 +54,68 @@
             </button>
           </div>
 
-          <!-- Admin Items ve Logout ayırıcısı -->
-          <div v-if="showAdminRoutes && currentItems.length > menuItems.length" class="w-px h-6 bg-white/40 mx-3"></div>
+          <!-- Normal ve Admin items arasındaki ayıraç -->
+          <div v-if="showAdminRoutes" class="flex items-center mx-2">
+            <div class="w-px h-6 bg-white/40"></div>
+          </div>
+          
+          <!-- Admin Items -->
+          <template v-if="showAdminRoutes">
+            <div
+              v-for="(item, index) in adminItems"
+              :key="item.href"
+              class="relative"
+              @mouseenter="hoveredIndex = menuItems.length + index"
+              @mouseleave="hoveredIndex = null"
+            >
+              <div
+                v-if="hoveredIndex === menuItems.length + index"
+                v-motion
+                :initial="{ opacity: 0, y: 10, scale: 0.8 }"
+                :animate="{ opacity: 1, y: -10, scale: 1 }"
+                :exit="{ opacity: 0, y: 10, scale: 0.8 }"
+                :transition="{ duration: 0.15, ease: 'easeOut' }"
+                class="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap font-medium"
+              >
+                {{ item.label }}
+                <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900/90"></div>
+              </div>
+
+              <button
+                @click="() => router.push(item.href)"
+                v-motion
+                :hover="{ scale: 1.15, y: -6 }"
+                :tap="{ scale: 0.95 }"
+                :animate="{ scale: hoveredIndex === menuItems.length + index ? 1.1 : 1, y: hoveredIndex === menuItems.length + index ? -3 : 0 }"
+                :transition="{ duration: 0.2, ease: 'easeOut' }"
+                class="relative p-2 rounded-xl transition-all duration-300 cursor-pointer group"
+              >
+                <div
+                  :class="[
+                    'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+                    isActive(item.href)
+                      ? `bg-gradient-to-br ${item.color} shadow-lg border border-white/30 scale-105`
+                      : `bg-gradient-to-br ${item.color} hover:scale-105 backdrop-blur-sm border border-white/20 shadow-sm opacity-80 hover:opacity-100`
+                  ]"
+                >
+                  <component :is="item.icon" :class="['w-5 h-5 transition-all duration-300', 'text-white drop-shadow-sm']" />
+                </div>
+
+                <div
+                  v-if="isActive(item.href)"
+                  v-motion
+                  layoutId="active-indicator"
+                  class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white rounded-full"
+                  :transition="{ duration: 0.2 }"
+                ></div>
+              </button>
+            </div>
+            
+            <!-- Admin Items ve Logout ayırıcısı -->
+            <div class="flex items-center mx-2">
+              <div class="w-px h-6 bg-white/40"></div>
+            </div>
+          </template>
 
           <!-- Logout Button - Admin olduğunda göster -->
           <div v-if="showAdminRoutes" class="relative">
@@ -73,8 +133,8 @@
               @mouseleave="hoveredIndex = null"
               class="relative p-2 rounded-xl transition-all duration-300 cursor-pointer group"
             >
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md backdrop-blur-sm border border-white/30 transition-all duration-300">
-                <LogOut class="w-5 h-5 text-white" />
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105 shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 opacity-90 hover:opacity-100">
+                <LogOut class="w-5 h-5 text-white drop-shadow-sm" />
               </div>
             </button>
           </div>
@@ -88,7 +148,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2 } from 'lucide-vue-next';
+import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2, Rss, Newspaper } from 'lucide-vue-next';
 import { useAuth } from '../composables/useAuth.js';
 import Swal from 'sweetalert2';
 
@@ -98,18 +158,19 @@ const router = useRouter();
 const { isAuthenticated, logout } = useAuth();
 
 const menuItems = [
-  { icon: Home, href: "/", label: "Ana Sayfa", color: "from-blue-500 to-blue-600" },
-  { icon: User, href: "/about", label: "Hakkımda", color: "from-green-500 to-green-600" },
-  { icon: FolderOpen, href: "/projects", label: "Projeler", color: "from-purple-500 to-purple-600" },
-  { icon: Mail, href: "/contact", label: "İletişim", color: "from-red-500 to-red-600" },
+  { icon: Home, href: "/", label: "Ana Sayfa", color: "from-indigo-500 via-blue-500 to-cyan-500" },
+  { icon: User, href: "/about", label: "Hakkımda", color: "from-emerald-500 via-green-500 to-teal-500" },
+  { icon: FolderOpen, href: "/projects", label: "Projeler", color: "from-violet-500 via-purple-500 to-fuchsia-500" },
+  { icon: Rss, href: "/blog", label: "Blog", color: "from-amber-500 via-orange-500 to-red-500" },
+  { icon: Mail, href: "/contact", label: "İletişim", color: "from-rose-500 via-pink-500 to-red-500" },
 ];
 
 const adminItems = [
-  { icon: BarChart3, href: "/admin/dashboard", label: "Dashboard", color: "from-orange-500 to-orange-600" },
-  { icon: FolderOpen, href: "/admin/projects", label: "Projeler", color: "from-purple-500 to-purple-600" },
-  { icon: PlusCircle, href: "/admin/projects/new", label: "Yeni Proje", color: "from-emerald-500 to-emerald-600" },
-  { icon: MessageSquare, href: "/admin/messages", label: "Mesajlar", color: "from-cyan-500 to-cyan-600" },
-  { icon: Settings, href: "/admin/settings", label: "Ayarlar", color: "from-gray-500 to-gray-600" },
+  { icon: BarChart3, href: "/admin/dashboard", label: "Dashboard", color: "from-orange-400 via-orange-500 to-amber-500" },
+  { icon: FolderOpen, href: "/admin/projects", label: "Projeler", color: "from-purple-400 via-violet-500 to-indigo-500" },
+  { icon: Newspaper, href: "/admin/articles", label: "Makaleler", color: "from-teal-400 via-cyan-500 to-blue-500" },
+  { icon: MessageSquare, href: "/admin/messages", label: "Mesajlar", color: "from-sky-400 via-blue-500 to-indigo-500" },
+  { icon: Settings, href: "/admin/settings", label: "Ayarlar", color: "from-slate-400 via-gray-500 to-zinc-500" },
 ];
 
 const handleLogout = async () => {
@@ -128,7 +189,7 @@ const handleLogout = async () => {
 
   if (result.isConfirmed) {
     await logout();
-    
+
     Swal.fire({
       toast: true,
       position: 'top-end',
@@ -143,7 +204,6 @@ const handleLogout = async () => {
 
 // Admin routes'ları sadece authenticated olduğunda göster
 const showAdminRoutes = computed(() => isAuthenticated.value);
-const currentItems = computed(() => [...menuItems, ...(showAdminRoutes.value ? adminItems : [])]);
 
 const isActive = (href) => route.path === href;
 </script>

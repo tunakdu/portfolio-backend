@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan tinker:*)",
+      "Bash(php artisan make:model:*)",
+      "Bash(php artisan make:controller:*)",
+      "Bash(php artisan migrate:*)",
+      "Bash(curl:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(rm:*)",
+      "Bash(npm run lint)",
+      "Bash(npm install:*)",
+      "Bash(php artisan:*)",
+      "Bash(npm run build:*)",
+      "Bash(mkdir:*)",
+      "Bash(composer:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

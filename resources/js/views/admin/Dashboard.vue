@@ -62,6 +62,29 @@
         </div>
       </div>
 
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Projects Card -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-bold mb-2">Projeler</h2>
+          <p class="text-gray-700 mb-4">Proje listesini görüntüle ve yeni projeler ekle.</p>
+          <router-link to="/admin/projects" class="text-blue-500 hover:text-blue-700 font-semibold">Projeleri Yönet &rarr;</router-link>
+        </div>
+
+        <!-- Articles Card -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-bold mb-2">Makaleler</h2>
+          <p class="text-gray-700 mb-4">Blog yazılarını yönet, yeni makaleler ekle ve düzenle.</p>
+          <router-link to="/admin/articles" class="text-purple-500 hover:text-purple-700 font-semibold">Makaleleri Yönet &rarr;</router-link>
+        </div>
+
+        <!-- Skills Card -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-bold mb-2">Yetenekler</h2>
+          <p class="text-gray-700 mb-4">Yeteneklerinizi düzenleyin ve yeni yetenekler ekleyin.</p>
+          <router-link to="/admin/skills" class="text-green-500 hover:text-green-700 font-semibold">Yetenekleri Yönet &rarr;</router-link>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Quick Actions -->
         <div class="lg:col-span-2">
@@ -237,7 +260,7 @@ const recentActivities = [
 
 const handleLogout = async () => {
   isLoggingOut.value = true;
-  
+
   try {
     await logout();
   } catch (error) {
