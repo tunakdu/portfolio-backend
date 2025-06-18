@@ -66,6 +66,9 @@ jobs:
         cp composer.json deployment/
         cp composer.lock deployment/
         
+        # .htaccess dosyasını public klasörü için oluştur
+        cp public_htaccess deployment/.htaccess
+        
         # Build edilmiş Vue.js asset'leri kopyala (paylaşımlı sunucu için gerekli)
         cp -r public/build deployment/public/ 2>/dev/null || true
         
