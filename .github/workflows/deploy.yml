@@ -20,7 +20,7 @@ jobs:
         extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, zip
         coverage: none
         
-    - name: Setup Node.js
+    - name: Setup Node.js (sadece build için)
       uses: actions/setup-node@v4
       with:
         node-version: '18'
@@ -40,10 +40,10 @@ jobs:
     - name: Install PHP dependencies
       run: composer install --no-dev --optimize-autoloader --no-interaction
       
-    - name: Install NPM dependencies
+    - name: Install NPM dependencies (sadece build için)
       run: npm ci
       
-    - name: Build assets
+    - name: Build Vue.js assets (paylaşımlı sunucu için)
       run: npm run build
       
     - name: Create deployment package
@@ -67,7 +67,7 @@ jobs:
         cp composer.json deployment/
         cp composer.lock deployment/
         
-        # Build edilmiş asset'leri kopyala
+        # Build edilmiş Vue.js asset'leri kopyala (paylaşımlı sunucu için gerekli)
         cp -r public/build deployment/public/ 2>/dev/null || true
         
         # .env.example dosyasını kopyala (production'da .env olarak kullanılacak)
@@ -102,9 +102,11 @@ jobs:
       if: success()
       run: |
         echo "Deployment completed successfully!"
-        echo "Don't forget to:"
-        echo "1. Copy .env.production to .env on the server"
-        echo "2. Run 'php artisan key:generate' on the server"
-        echo "3. Run 'php artisan migrate --force' on the server"
-        echo "4. Run 'php artisan storage:link' on the server"
-        echo "5. Set proper file permissions on the server"
+        echo "PAYLAŞIMLI SUNUCU İÇİN:"
+        echo "1. Node.js gerekli değil - Vue.js asset'leri önceden build edildi"
+        echo "2. Copy .env.production to .env on the server"
+        echo "3. Run 'php artisan key:generate' on the server"
+        echo "4. Run 'php artisan migrate --force' on the server"
+        echo "5. Run 'php artisan storage:link' on the server"
+        echo "6. Set proper file permissions on the server"
+        echo "7. Setup cPanel mail credentials in .env"

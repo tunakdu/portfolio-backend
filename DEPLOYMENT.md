@@ -1,6 +1,8 @@
-# 🚀 Deployment Kurulumu
+# 🚀 Deployment Kurulumu (Paylaşımlı Sunucu)
 
-Bu proje GitHub Actions ile otomatik FTP deployment kullanıyor. Her `main` branch'e push yapıldığında otomatik olarak production sunucusuna deploy edilir.
+Bu proje GitHub Actions ile otomatik FTP deployment kullanıyor. Her `master` branch'e push yapıldığında otomatik olarak production sunucusuna deploy edilir.
+
+**⚡ Paylaşımlı sunucu özelliği**: Node.js sunucuda kurulu olmasa da çalışır. Vue.js asset'leri GitHub Actions'da build edilip hazır olarak gönderilir.
 
 ## ⚙️ GitHub Secrets Kurulumu
 
@@ -20,10 +22,10 @@ GitHub repository'nizde aşağıdaki secrets'ları ayarlamanız gerekiyor:
 4. **FTP_SERVER_DIR**
    - Değer: `/public_html/` veya `/htdocs/` (Sunucudaki hedef klasör)
 
-## 📁 Sunucu Kurulumu
+## 📁 Sunucu Kurulumu (Paylaşımlı Sunucu)
 
 ### 1. .env Dosyası
-Sunucunuzda `.env` dosyası oluşturun ve aşağıdaki ayarları yapın:
+Paylaşımlı sunucunuzda `.env` dosyası oluşturun ve aşağıdaki ayarları yapın:
 
 ```env
 APP_NAME="Portfolio"
@@ -101,12 +103,14 @@ crontab -e
 
 GitHub repository'nizde **Actions** sekmesinden deployment durumunu takip edebilirsiniz.
 
-## ⚠️ Önemli Notlar
+## ⚠️ Önemli Notlar (Paylaşımlı Sunucu)
 
+- **Node.js kurulumu gerekmez** - Vue.js asset'leri GitHub Actions'da build edilir
 - İlk deployment'tan sonra mutlaka sunucuda `./deploy-post.sh` script'ini çalıştırın
 - Database migration'ları otomatik çalışır
-- Asset'ler (CSS/JS) otomatik build edilir
+- Vue.js asset'leri (CSS/JS) önceden build edilmiş olarak gelir
 - cPanel mail credentials'larını `.env` dosyasına eklemeyi unutmayın
+- PHP 8.2+ ve IMAP extension'ının aktif olduğundan emin olun
 
 ## 🆘 Sorun Giderme
 
