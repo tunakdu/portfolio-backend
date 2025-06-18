@@ -15,7 +15,8 @@
       "Bash(mkdir:*)",
       "Bash(composer:*)",
       "Bash(chmod:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
