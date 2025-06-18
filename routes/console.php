@@ -8,14 +8,14 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Gmail mesajlarını her 2 dakikada bir senkronize et
-Schedule::command('gmail:sync')
+// E-posta mesajlarını her 2 dakikada bir senkronize et
+Schedule::command('email:sync')
     ->everyTwoMinutes()
     ->withoutOverlapping()
     ->runInBackground()
     ->onFailure(function () {
-        \Log::error('Gmail senkronizasyon zamanlı görevi başarısız');
+        \Log::error('E-posta senkronizasyon zamanlı görevi başarısız');
     })
     ->onSuccess(function () {
-        \Log::info('Gmail senkronizasyon zamanlı görevi başarılı');
+        \Log::info('E-posta senkronizasyon zamanlı görevi başarılı');
     });

@@ -8,7 +8,7 @@ use App\Models\Message;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactMessage;
-use App\Services\GmailService;
+use App\Services\ImapService;
 
 class MessageController extends Controller
 {
@@ -114,20 +114,14 @@ class MessageController extends Controller
     }
 
     /**
-     * Gmail'den yeni mesajları manuel senkronize et
+     * E-posta kutusundan yeni mesajları manuel senkronize et
      */
-    public function syncGmail()
+    public function syncEmails()
     {
         try {
-            $gmailService = new GmailService();
+            $imapService = new ImapService();
             
-            if (!$gmailService->refreshAccessToken()) {
-                return response()->json([
-                    'message' => 'Gmail bağlantısı başarısız. Lütfen ayarları kontrol edin.'
-                ], 500);
-            }
-            
-            $newMessages = $gmailService->fetchNewEmails();
+            $newMessages = $imapService->fetchNewEmails();
             
             return response()->json([
                 'message' => count($newMessages) . ' yeni mesaj senkronize edildi.',
@@ -136,10 +130,10 @@ class MessageController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Manuel Gmail senkronizasyon hatası: ' . $e->getMessage());
+            \Log::error('Manuel e-posta senkronizasyon hatası: ' . $e->getMessage());
             
             return response()->json([
-                'message' => 'Gmail senkronizasyonu sırasında hata oluştu.'
+                'message' => 'E-posta senkronizasyonu sırasında hata oluştu.'
             ], 500);
         }
     }

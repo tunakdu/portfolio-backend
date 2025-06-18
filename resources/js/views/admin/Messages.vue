@@ -52,7 +52,7 @@
             
             <!-- Manuel Sync Butonu -->
             <button
-              @click="syncGmail"
+              @click="syncEmails"
               :disabled="isSyncing"
               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
@@ -94,14 +94,14 @@
             📝 İletişim Formu ({{ contactMessages.length }})
           </button>
           <button
-            @click="activeTab = 'GMAIL'"
+            @click="activeTab = 'EMAIL'"
             :class="`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'GMAIL'
+              activeTab === 'EMAIL'
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:text-gray-900'
             }`"
           >
-            📧 Gmail ({{ gmailMessages.length }})
+            📧 E-posta ({{ gmailMessages.length }})
           </button>
         </div>
       </div>
@@ -282,7 +282,7 @@ const isLoading = ref(true);
 const searchTerm = ref('');
 const statusFilter = ref('ALL');
 const selectedMessage = ref(null);
-const activeTab = ref('CONTACT_FORM');
+const activeTab = ref('EMAIL');
 const isSyncing = ref(false);
 const autoSyncInterval = ref(null);
 const isAutoSyncEnabled = ref(true); // Varsayılan olarak açık
@@ -331,10 +331,10 @@ const fetchMessages = async () => {
       }));
       
     gmailMessages.value = allMessages
-      .filter(msg => msg.subject && msg.subject !== 'Web Sitesi İletişim Formu') // Gmail mesajları
+      .filter(msg => msg.subject && msg.subject !== 'Web Sitesi İletişim Formu') // E-posta mesajları
       .map(msg => ({
         ...msg,
-        source: 'GMAIL',
+        source: 'EMAIL',
         status: msg.is_read ? 'READ' : 'UNREAD'
       }));
       
@@ -347,18 +347,18 @@ const fetchMessages = async () => {
   }
 };
 
-const syncGmail = async () => {
+const syncEmails = async () => {
   if (isSyncing.value) return;
   
   isSyncing.value = true;
   
   try {
-    const response = await axios.post('/api/messages/sync-gmail');
+    const response = await axios.post('/api/messages/sync-emails');
     
     // Başarı mesajı göster
     await Swal.fire({
       icon: 'success',
-      title: 'Gmail Senkronizasyonu',
+      title: 'E-posta Senkronizasyonu',
       text: response.data.message,
       timer: 3000,
       timerProgressBar: true
@@ -368,12 +368,12 @@ const syncGmail = async () => {
     await fetchMessages();
     
   } catch (error) {
-    console.error('Gmail sync error:', error);
+    console.error('Email sync error:', error);
     
     await Swal.fire({
       icon: 'error',
-      title: 'Gmail Senkronizasyon Hatası',
-      text: error.response?.data?.message || 'Gmail senkronizasyonu sırasında bir hata oluştu.',
+      title: 'E-posta Senkronizasyon Hatası',
+      text: error.response?.data?.message || 'E-posta senkronizasyonu sırasında bir hata oluştu.',
     });
   } finally {
     isSyncing.value = false;
@@ -509,11 +509,11 @@ const startAutoSync = () => {
   // Her 2 dakikada bir otomatik senkronizasyon
   autoSyncInterval.value = setInterval(async () => {
     try {
-      console.log('Otomatik Gmail senkronizasyonu...');
-      const response = await axios.post('/api/messages/sync-gmail');
+      console.log('Otomatik e-posta senkronizasyonu...');
+      const response = await axios.post('/api/messages/sync-emails');
       
       if (response.data.new_messages_count > 0) {
-        console.log(`${response.data.new_messages_count} yeni Gmail mesajı bulundu`);
+        console.log(`${response.data.new_messages_count} yeni e-posta mesajı bulundu`);
         await fetchMessages(); // Listeyi yenile
         
         // Sessiz bildirim (toast)
@@ -527,7 +527,7 @@ const startAutoSync = () => {
         
         Toast.fire({
           icon: 'info',
-          title: `${response.data.new_messages_count} yeni Gmail mesajı alındı`
+          title: `${response.data.new_messages_count} yeni e-posta mesajı alındı`
         });
       }
     } catch (error) {
@@ -557,7 +557,7 @@ const toggleAutoSync = () => {
     
     Toast.fire({
       icon: 'success',
-      title: 'Otomatik Gmail senkronizasyonu etkinleştirildi (Her 2 dakikada)'
+      title: 'Otomatik e-posta senkronizasyonu etkinleştirildi (Her 2 dakikada)'
     });
   } else {
     stopAutoSync();
@@ -572,7 +572,7 @@ const toggleAutoSync = () => {
     
     Toast.fire({
       icon: 'info',
-      title: 'Otomatik Gmail senkronizasyonu devre dışı bırakıldı'
+      title: 'Otomatik e-posta senkronizasyonu devre dışı bırakıldı'
     });
   }
 };

@@ -41,20 +41,22 @@ DB_DATABASE=your_database
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
 
-# Mail
+# Mail (cPanel SMTP)
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=your-email@gmail.com
+MAIL_HOST=mt-dandy.guzelhosting.com
+MAIL_PORT=465
+MAIL_USERNAME=tunakdu@akduhan.com
+MAIL_PASSWORD=your-cpanel-mail-password
+MAIL_ENCRYPTION=ssl
+MAIL_FROM_ADDRESS=tunakdu@akduhan.com
 MAIL_FROM_NAME="Portfolio"
 
-# Gmail API
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=https://yourdomain.com/auth/google/callback
+# cPanel Mail IMAP (for incoming emails)
+IMAP_HOST=mt-dandy.guzelhosting.com
+IMAP_PORT=993
+IMAP_USERNAME=tunakdu@akduhan.com
+IMAP_PASSWORD=your-cpanel-mail-password
+IMAP_ENCRYPTION=ssl
 ```
 
 ### 2. Post-Deployment Script
@@ -72,15 +74,15 @@ chmod +x deploy-post.sh
 ./deploy-post.sh
 ```
 
-### 3. Cron Job (Gmail Sync için)
-Gmail otomatik senkronizasyonu için cron job ekleyin:
+### 3. Cron Job (E-posta Sync için)
+E-posta otomatik senkronizasyonu için cron job ekleyin:
 
 ```bash
 # Crontab'ı düzenleyin
 crontab -e
 
-# Her 2 dakikada bir Gmail sync
-*/2 * * * * cd /path/to/your/project && php artisan gmail:sync > /dev/null 2>&1
+# Her 2 dakikada bir e-posta sync
+*/2 * * * * cd /path/to/your/project && php artisan email:sync > /dev/null 2>&1
 ```
 
 ## 🔄 Deployment Süreci
@@ -104,7 +106,7 @@ GitHub repository'nizde **Actions** sekmesinden deployment durumunu takip edebil
 - İlk deployment'tan sonra mutlaka sunucuda `./deploy-post.sh` script'ini çalıştırın
 - Database migration'ları otomatik çalışır
 - Asset'ler (CSS/JS) otomatik build edilir
-- Gmail API credentials'larını `.env` dosyasına eklemeyi unutmayın
+- cPanel mail credentials'larını `.env` dosyasına eklemeyi unutmayın
 
 ## 🆘 Sorun Giderme
 

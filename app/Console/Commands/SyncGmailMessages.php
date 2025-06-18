@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\GmailService;
+use App\Services\ImapService;
 use Illuminate\Support\Facades\Log;
 
 class SyncGmailMessages extends Command
