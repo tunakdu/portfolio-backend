@@ -32,22 +32,55 @@ jobs:
         npm ci
         npm run build
         
-    - name: Deploy to VPS via SSH
+    - name: Deploy to Hestia Panel VPS via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USERNAME }}
-        key: ${{ secrets.VPS_SSH_KEY }}
+        password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.VPS_PORT }}
         script: |
-          cd /var/www/portfolio
-          git pull origin master
+          # Hestia Panel web dizinine git
+          cd /home/admin/web/akduhan.com/public_html
+          
+          # Git repository klonla veya güncelle
+          if [ ! -d ".git" ]; then
+            rm -rf *
+            git clone https://github.com/tunakdu/portfolio-backend.git .
+          else
+            git pull origin master
+          fi
+          
+          # Composer dependencies yükle
           composer install --no-dev --optimize-autoloader --no-interaction
+          
+          # NPM dependencies ve build
           npm ci
           npm run build
+          
+          # .env dosyası oluştur
+          if [ ! -f ".env" ]; then
+            cp .env.example .env
+            
+            # .env dosyasını güncelle
+            sed -i 's|APP_URL=.*|APP_URL=https://akduhan.com|' .env
+            sed -i 's|DB_DATABASE=.*|DB_DATABASE=tunakdu_portfolio|' .env
+            sed -i 's|DB_USERNAME=.*|DB_USERNAME=root|' .env
+            sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=i[Nw(SS9V#GiYZ+d|' .env
+            sed -i 's|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS="tunakdu@akduhan.com"|' .env
+            sed -i 's|SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=akduhan.com,www.akduhan.com|' .env
+          fi
+          
+          # Laravel kurulum komutları
+          php artisan key:generate --force
           php artisan migrate --force
+          php artisan storage:link
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
-          sudo systemctl reload nginx
-          sudo systemctl reload php8.2-fpm
+          
+          # Dosya izinlerini ayarla
+          chown -R admin:admin /home/admin/web/akduhan.com/public_html
+          chmod -R 755 /home/admin/web/akduhan.com/public_html
+          chmod -R 775 /home/admin/web/akduhan.com/public_html/storage
+          chmod -R 775 /home/admin/web/akduhan.com/public_html/bootstrap/cache
