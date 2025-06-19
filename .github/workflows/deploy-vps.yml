@@ -73,15 +73,27 @@ jobs:
           sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=BKWHSA0XSOs1yQE|' .env
           sed -i 's|SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=akduhan.com,www.akduhan.com|' .env
           
-          # Composer dependencies yükle
-          composer install --no-dev --optimize-autoloader --no-interaction
+          # Composer dependencies yükle (vendor klasörü kontrolü)
+          if [ ! -d "vendor" ]; then
+            composer install --no-dev --optimize-autoloader --no-interaction
+          else
+            composer update --no-dev --optimize-autoloader --no-interaction
+          fi
           
-          # NPM dependencies ve build
-          npm ci
+          # NPM dependencies ve build (node_modules kontrolü)
+          if [ ! -d "node_modules" ]; then
+            npm ci
+          else
+            npm install
+          fi
           npm run build
           
           # Laravel kurulum komutları
           php artisan key:generate --force
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan route:clear
+          php artisan view:clear
           php artisan migrate --force
           php artisan storage:link
           php artisan config:cache
