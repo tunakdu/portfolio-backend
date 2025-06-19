@@ -41,10 +41,10 @@ jobs:
         port: ${{ secrets.VPS_PORT }}
         script: |
           # Hestia Panel'de domain oluştur (varsa hata vermez)
-          v-add-web-domain admin akduhan.com || true
+          v-add-web-domain tunakdu akduhan.com || true
           
-          # Web dizinine git
-          cd /home/web/akduhan.com/public_html || mkdir -p /home/web/akduhan.com/public_html && cd /home/web/akduhan.com/public_html
+          # Web dizinine git  
+          cd /home/tunakdu/web/akduhan.com/public_html || mkdir -p /home/tunakdu/web/akduhan.com/public_html && cd /home/tunakdu/web/akduhan.com/public_html
           
           # Eski dosyaları temizle ve git klonla
           rm -rf *
@@ -90,7 +90,7 @@ jobs:
           php artisan view:cache
           
           # Dosya izinlerini ayarla
-          chown -R www-data:www-data /home/web/akduhan.com/public_html
-          chmod -R 755 /home/web/akduhan.com/public_html
-          chmod -R 775 /home/web/akduhan.com/public_html/storage
-          chmod -R 775 /home/web/akduhan.com/public_html/bootstrap/cache
+          chown -R tunakdu:www-data /home/tunakdu/web/akduhan.com/public_html
+          chmod -R 755 /home/tunakdu/web/akduhan.com/public_html
+          chmod -R 775 /home/tunakdu/web/akduhan.com/public_html/storage
+          chmod -R 775 /home/tunakdu/web/akduhan.com/public_html/bootstrap/cache
