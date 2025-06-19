@@ -40,16 +40,39 @@ jobs:
         password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.VPS_PORT }}
         script: |
-          # Hestia Panel web dizinine git
-          cd /home/admin/web/akduhan.com/public_html
+          # Hestia Panel'de domain oluştur (varsa hata vermez)
+          v-add-web-domain admin akduhan.com || true
           
-          # Git repository klonla veya güncelle
-          if [ ! -d ".git" ]; then
-            rm -rf *
-            git clone https://github.com/tunakdu/portfolio-backend.git .
-          else
-            git pull origin master
+          # Web dizinine git
+          cd /home/admin/web/akduhan.com/public_html || mkdir -p /home/admin/web/akduhan.com/public_html && cd /home/admin/web/akduhan.com/public_html
+          
+          # Eski dosyaları temizle ve git klonla
+          rm -rf *
+          rm -rf .*
+          git clone https://github.com/tunakdu/portfolio-backend.git .
+          
+          # Node.js kurulumu (eğer yoksa)
+          if ! command -v node &> /dev/null; then
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            apt-get install -y nodejs
           fi
+          
+          # Composer kurulumu (eğer yoksa)
+          if ! command -v composer &> /dev/null; then
+            curl -sS https://getcomposer.org/installer | php
+            mv composer.phar /usr/local/bin/composer
+          fi
+          
+          # .env dosyası oluştur
+          cp .env.example .env
+          
+          # .env dosyasını güncelle
+          sed -i 's|APP_URL=.*|APP_URL=https://akduhan.com|' .env
+          sed -i 's|DB_DATABASE=.*|DB_DATABASE=tunakdu_portfolio|' .env
+          sed -i 's|DB_USERNAME=.*|DB_USERNAME=root|' .env
+          sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=i[Nw(SS9V#GiYZ+d|' .env
+          sed -i 's|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS="tunakdu@akduhan.com"|' .env
+          sed -i 's|SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=akduhan.com,www.akduhan.com|' .env
           
           # Composer dependencies yükle
           composer install --no-dev --optimize-autoloader --no-interaction
@@ -57,19 +80,6 @@ jobs:
           # NPM dependencies ve build
           npm ci
           npm run build
-          
-          # .env dosyası oluştur
-          if [ ! -f ".env" ]; then
-            cp .env.example .env
-            
-            # .env dosyasını güncelle
-            sed -i 's|APP_URL=.*|APP_URL=https://akduhan.com|' .env
-            sed -i 's|DB_DATABASE=.*|DB_DATABASE=tunakdu_portfolio|' .env
-            sed -i 's|DB_USERNAME=.*|DB_USERNAME=root|' .env
-            sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=i[Nw(SS9V#GiYZ+d|' .env
-            sed -i 's|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS="tunakdu@akduhan.com"|' .env
-            sed -i 's|SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=akduhan.com,www.akduhan.com|' .env
-          fi
           
           # Laravel kurulum komutları
           php artisan key:generate --force
@@ -80,7 +90,7 @@ jobs:
           php artisan view:cache
           
           # Dosya izinlerini ayarla
-          chown -R admin:admin /home/admin/web/akduhan.com/public_html
+          chown -R admin:www-data /home/admin/web/akduhan.com/public_html
           chmod -R 755 /home/admin/web/akduhan.com/public_html
           chmod -R 775 /home/admin/web/akduhan.com/public_html/storage
           chmod -R 775 /home/admin/web/akduhan.com/public_html/bootstrap/cache
