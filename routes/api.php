@@ -38,7 +38,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Diğer Admin Rotaları
     Route::apiResource('messages', MessageController::class)->only(['index', 'show', 'update', 'destroy']);
-    Route::post('/messages/sync-emails', [MessageController::class, 'syncEmails']);
     Route::post('/site-settings', [SiteSettingController::class, 'store']);
     Route::apiResource('/projects', ProjectController::class)->except(['index', 'show']);
     Route::apiResource('/skills', SkillController::class)->except(['index']);

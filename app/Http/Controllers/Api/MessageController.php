@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ContactMessage;
-use App\Services\ImapService;
 
 class MessageController extends Controller
 {
@@ -49,13 +46,6 @@ class MessageController extends Controller
             'subject' => 'Web Sitesi İletişim Formu',
         ]);
 
-        // Mail gönder
-        try {
-            Mail::to(env('MAIL_FROM_ADDRESS'))->send(new ContactMessage($message));
-        } catch (\Exception $e) {
-            \Log::error('Mail gönderme hatası: ' . $e->getMessage());
-            // Mail hata verse bile mesaj kaydedilsin
-        }
 
         return response()->json([
             'message' => 'Mesajınız başarıyla gönderildi!',
@@ -113,30 +103,6 @@ class MessageController extends Controller
         ]);
     }
 
-    /**
-     * E-posta kutusundan yeni mesajları manuel senkronize et
-     */
-    public function syncEmails()
-    {
-        try {
-            $imapService = new ImapService();
-            
-            $newMessages = $imapService->fetchNewEmails();
-            
-            return response()->json([
-                'message' => count($newMessages) . ' yeni mesaj senkronize edildi.',
-                'new_messages_count' => count($newMessages),
-                'data' => $newMessages
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Manuel e-posta senkronizasyon hatası: ' . $e->getMessage());
-            
-            return response()->json([
-                'message' => 'E-posta senkronizasyonu sırasında hata oluştu.'
-            ], 500);
-        }
-    }
 
     /**
      * Remove the specified resource from storage.
