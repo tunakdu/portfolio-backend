@@ -43,13 +43,13 @@ jobs:
           # Hestia Panel'de domain oluştur (varsa hata vermez)
           v-add-web-domain admin akduhan.com || true
           
-          # Web dizinine git
-          cd /home/admin/web/akduhan.com/public_html || mkdir -p /home/admin/web/akduhan.com/public_html && cd /home/admin/web/akduhan.com/public_html
+          # Laravel ana dizinine git
+          cd /home/admin/web/akduhan.com || mkdir -p /home/admin/web/akduhan.com && cd /home/admin/web/akduhan.com
           
           # Eski dosyaları temizle ve git klonla
-          rm -rf *
-          rm -rf .*
-          git clone https://github.com/tunakdu/portfolio-backend.git .
+          rm -rf portfolio
+          git clone https://github.com/tunakdu/portfolio-backend.git portfolio
+          cd portfolio
           
           # Node.js kurulumu (eğer yoksa)
           if ! command -v node &> /dev/null; then
@@ -89,8 +89,13 @@ jobs:
           php artisan route:cache
           php artisan view:cache
           
+          # Laravel public klasörünü public_html'e kopyala
+          rm -rf /home/admin/web/akduhan.com/public_html/*
+          cp -r public/* /home/admin/web/akduhan.com/public_html/
+          
           # Dosya izinlerini ayarla
-          chown -R admin:www-data /home/admin/web/akduhan.com/public_html
+          chown -R admin:www-data /home/admin/web/akduhan.com/
+          chmod -R 755 /home/admin/web/akduhan.com/portfolio
+          chmod -R 775 /home/admin/web/akduhan.com/portfolio/storage
+          chmod -R 775 /home/admin/web/akduhan.com/portfolio/bootstrap/cache
           chmod -R 755 /home/admin/web/akduhan.com/public_html
-          chmod -R 775 /home/admin/web/akduhan.com/public_html/storage
-          chmod -R 775 /home/admin/web/akduhan.com/public_html/bootstrap/cache
