@@ -10,7 +10,19 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import Dock from './Dock.vue';
+import { setupRouterTracking, setupLinkTracking } from '../plugins/analytics';
+
+const router = useRouter();
+
+onMounted(() => {
+  // Setup analytics tracking
+  setupRouterTracking(router);
+  setupLinkTracking();
+  console.log('🚀 Portfolio app loaded with Analytics');
+});
 </script>
 
 <style>

@@ -12,9 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            if (!Schema::hasColumn('messages', 'subject')) {
-                $table->string('subject')->nullable()->after('email');
-            }
+            $table->enum('source', ['contact_form', 'email'])->default('contact_form')->after('message');
         });
     }
 
@@ -24,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->dropColumn('subject');
+            $table->dropColumn('source');
         });
     }
 };

@@ -119,29 +119,29 @@
             <div class="message-info">
                 <div class="info-row">
                     <div class="info-label">👤 İsim:</div>
-                    <div class="info-value"><strong>{{ $contactMessage->name }}</strong></div>
+                    <div class="info-value"><strong>{{ $message->name }}</strong></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">📧 Email:</div>
                     <div class="info-value">
-                        <a href="mailto:{{ $contactMessage->email }}" style="color: #3b82f6; text-decoration: none;">
-                            {{ $contactMessage->email }}
+                        <a href="mailto:{{ $message->email }}" style="color: #3b82f6; text-decoration: none;">
+                            {{ $message->email }}
                         </a>
                     </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">📅 Tarih:</div>
-                    <div class="info-value">{{ $contactMessage->created_at ? $contactMessage->created_at->format('d.m.Y H:i') : now()->format('d.m.Y H:i') }}</div>
+                    <div class="info-value">{{ $message->created_at ? $message->created_at->format('d.m.Y H:i') : now()->format('d.m.Y H:i') }}</div>
                 </div>
             </div>
 
             <div class="message-content">
                 <h3>💬 Mesaj İçeriği:</h3>
-                <div class="message-text">{{ $contactMessage->message }}</div>
+                <div class="message-text">{{ $message->message }}</div>
             </div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <a href="mailto:{{ $contactMessage->email }}?subject=Re: Portfolio İletişim" class="reply-button">
+                <a href="mailto:{{ $message->email }}?subject=Re: Portfolio İletişim" class="reply-button">
                     📧 Hemen Yanıtla
                 </a>
             </div>

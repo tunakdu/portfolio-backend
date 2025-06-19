@@ -7,7 +7,7 @@
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <h1 class="text-2xl font-bold text-gray-900">
-                Admin Panel
+                Analytics Dashboard
               </h1>
             </div>
           </div>
@@ -28,112 +28,208 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Welcome Section -->
-      <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 mb-2">
-          Hoş Geldiniz! 👋
-        </h2>
-        <p class="text-gray-600">
-          Portfolio sitenizi yönetmek için gerekli tüm araçlar burada.
-        </p>
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center h-64">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
 
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div v-for="stat in stats" :key="stat.title" class="modern-card p-6">
-          <div class="flex items-center">
-            <div :class="`${stat.color} p-3 rounded-lg mr-4`">
-              <component :is="stat.icon" class="w-6 h-6 text-white" />
+      <div v-else>
+        <!-- Overview Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Today Visitors -->
+          <div class="modern-card p-6">
+            <div class="flex items-center">
+              <div class="bg-blue-500 p-3 rounded-lg mr-4">
+                <Users class="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 mb-1">Bugün Ziyaretçi</p>
+                <div class="flex items-center space-x-2">
+                  <p class="text-2xl font-bold text-gray-900">{{ analytics.visitors?.today || 0 }}</p>
+                  <span :class="getChangeClass(analytics.visitors?.change_percent)">
+                    {{ formatChange(analytics.visitors?.change_percent) }}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <p class="text-sm font-medium text-gray-600 mb-1">
-                {{ stat.title }}
-              </p>
-              <div class="flex items-center space-x-2">
-                <p class="text-2xl font-bold text-gray-900">
-                  {{ stat.value }}
-                </p>
-                <span class="text-sm text-green-600 font-medium">
-                  {{ stat.change }}
-                </span>
+          </div>
+
+          <!-- Today Page Views -->
+          <div class="modern-card p-6">
+            <div class="flex items-center">
+              <div class="bg-green-500 p-3 rounded-lg mr-4">
+                <Eye class="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 mb-1">Bugün Görüntüleme</p>
+                <div class="flex items-center space-x-2">
+                  <p class="text-2xl font-bold text-gray-900">{{ analytics.page_views?.today || 0 }}</p>
+                  <span :class="getChangeClass(analytics.page_views?.change_percent)">
+                    {{ formatChange(analytics.page_views?.change_percent) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Visitors -->
+          <div class="modern-card p-6">
+            <div class="flex items-center">
+              <div class="bg-purple-500 p-3 rounded-lg mr-4">
+                <TrendingUp class="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 mb-1">Toplam Ziyaretçi</p>
+                <p class="text-2xl font-bold text-gray-900">{{ analytics.visitors?.total || 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Messages -->
+          <div class="modern-card p-6">
+            <div class="flex items-center">
+              <div class="bg-orange-500 p-3 rounded-lg mr-4">
+                <MessageSquare class="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 mb-1">Toplam Mesaj</p>
+                <p class="text-2xl font-bold text-gray-900">{{ analytics.content?.messages || 0 }}</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Projects Card -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-          <h2 class="text-xl font-bold mb-2">Projeler</h2>
-          <p class="text-gray-700 mb-4">Proje listesini görüntüle ve yeni projeler ekle.</p>
-          <router-link to="/admin/projects" class="text-blue-500 hover:text-blue-700 font-semibold">Projeleri Yönet &rarr;</router-link>
+        <!-- Charts and Analytics Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Visitors Chart -->
+        <div class="col-span-1 lg:col-span-2 modern-card p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+              <BarChart3 class="w-5 h-5 mr-2" />
+              Ziyaretçi Grafiği
+            </h3>
+            <select 
+              v-model="chartDays" 
+              @change="loadVisitorsChart"
+              class="text-sm border border-gray-300 rounded-md px-3 py-1"
+            >
+              <option value="7">Son 7 Gün</option>
+              <option value="14">Son 14 Gün</option>
+              <option value="30">Son 30 Gün</option>
+            </select>
+          </div>
+          <!-- Simple chart placeholder -->
+          <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+            <div v-if="chartLoading" class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div v-else class="space-y-2">
+              <div class="flex space-x-2">
+                <div v-for="(data, index) in visitorsChart" :key="index" class="bg-blue-500 rounded-t" 
+                     :style="`height: ${Math.max(data.visitors * 3, 10)}px; width: 20px;`">
+                </div>
+              </div>
+              <div class="text-xs text-gray-500 text-center">Son {{ chartDays }} günlük ziyaretçi verileri</div>
+            </div>
+          </div>
         </div>
 
-        <!-- Articles Card -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-          <h2 class="text-xl font-bold mb-2">Makaleler</h2>
-          <p class="text-gray-700 mb-4">Blog yazılarını yönet, yeni makaleler ekle ve düzenle.</p>
-          <router-link to="/admin/articles" class="text-purple-500 hover:text-purple-700 font-semibold">Makaleleri Yönet &rarr;</router-link>
+        <!-- Top Pages -->
+        <div class="modern-card p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <FileText class="w-5 h-5 mr-2" />
+            Popüler Sayfalar
+          </h3>
+          <div class="space-y-3">
+            <div v-for="page in topPages" :key="page.page" class="flex justify-between items-center">
+              <span class="text-sm text-gray-900">{{ page.page }}</span>
+              <span class="text-sm font-medium text-blue-600">{{ page.views }}</span>
+            </div>
+          </div>
+        </div>
         </div>
 
-        <!-- Skills Card -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-          <h2 class="text-xl font-bold mb-2">Yetenekler</h2>
-          <p class="text-gray-700 mb-4">Yeteneklerinizi düzenleyin ve yeni yetenekler ekleyin.</p>
-          <router-link to="/admin/skills" class="text-green-500 hover:text-green-700 font-semibold">Yetenekleri Yönet &rarr;</router-link>
+        <!-- Recent Activity and Stats Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Recent Activity -->
+        <div class="col-span-1 lg:col-span-2 modern-card p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <Activity class="w-5 h-5 mr-2" />
+            Son Ziyaretçi Aktiviteleri
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Konum</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sayfa</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cihaz</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zaman</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="activity in recentActivity" :key="activity.ip" class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{{ activity.ip }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.location }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ activity.page }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.device }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{{ activity.time }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Quick Stats -->
+        <div class="modern-card p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <PieChart class="w-5 h-5 mr-2" />
+            İçerik İstatistikleri
+          </h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Toplam Makale</span>
+              <span class="text-sm font-medium text-gray-900">{{ analytics.content?.articles?.total || 0 }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Yayınlanan</span>
+              <span class="text-sm font-medium text-green-600">{{ analytics.content?.articles?.published || 0 }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Taslak</span>
+              <span class="text-sm font-medium text-yellow-600">{{ analytics.content?.articles?.draft || 0 }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Projeler</span>
+              <span class="text-sm font-medium text-gray-900">{{ analytics.content?.projects || 0 }}</span>
+            </div>
+          </div>
+        </div>
+        </div>
+
         <!-- Quick Actions -->
-        <div class="lg:col-span-2">
+        <div class="grid grid-cols-1 gap-6">
+        <div>
           <div class="modern-card p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <Activity class="w-5 h-5 mr-2" />
+              <Zap class="w-5 h-5 mr-2" />
               Hızlı Eylemler
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <button
                 v-for="action in quickActions"
                 :key="action.title"
-                :class="`${action.color} text-white p-6 rounded-xl text-left transition-all duration-200 transform hover:scale-105`"
+                :class="`${action.color} text-white p-4 rounded-xl text-left transition-all duration-200 transform hover:scale-105`"
                 @click="handleQuickAction(action.href)"
               >
-                <component :is="action.icon" class="w-8 h-8 mb-3" />
-                <h4 class="font-semibold mb-2">{{ action.title }}</h4>
-                <p class="text-sm text-white/80">{{ action.description }}</p>
+                <component :is="action.icon" class="w-6 h-6 mb-2" />
+                <h4 class="font-semibold text-sm mb-1">{{ action.title }}</h4>
+                <p class="text-xs text-white/80">{{ action.description }}</p>
               </button>
             </div>
           </div>
         </div>
-
-        <!-- Recent Activities -->
-        <div>
-          <div class="modern-card p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <Calendar class="w-5 h-5 mr-2" />
-              Son Aktiviteler
-            </h3>
-            <div class="space-y-4">
-              <div v-for="(activity, index) in recentActivities" :key="index" class="flex items-start space-x-3">
-                <div class="bg-gray-100 p-2 rounded-lg">
-                  <component :is="activity.icon" class="w-4 h-4 text-gray-600" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">
-                    {{ activity.action }}
-                  </p>
-                  <p class="text-sm text-gray-500 truncate">
-                    {{ activity.description }}
-                  </p>
-                  <p class="text-xs text-gray-400 mt-1">
-                    {{ activity.time }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </main>
@@ -150,117 +246,121 @@ import {
   Plus,
   MessageSquare,
   TrendingUp,
-  Star,
   Eye,
-  Calendar,
   LogOut,
-  Activity
+  Activity,
+  BarChart3,
+  PieChart,
+  Zap
 } from 'lucide-vue-next';
 import { useAuth } from '../../composables/useAuth.js';
+import axios from 'axios';
 
 const router = useRouter();
 const { user, logout } = useAuth();
 const isLoggingOut = ref(false);
+const loading = ref(true);
+const chartLoading = ref(false);
+const chartDays = ref(7);
 
-const stats = [
-  {
-    title: "Toplam Projeler",
-    value: "12",
-    change: "+2",
-    icon: FileText,
-    color: "bg-blue-500",
-  },
-  {
-    title: "Gelen Mesajlar",
-    value: "8",
-    change: "+3",
-    icon: MessageSquare,
-    color: "bg-green-500",
-  },
-  {
-    title: "Site Görüntüleme",
-    value: "1,250",
-    change: "+15%",
-    icon: Eye,
-    color: "bg-purple-500",
-  },
-  {
-    title: "Bu Ay Ziyaret",
-    value: "340",
-    change: "+8%",
-    icon: TrendingUp,
-    color: "bg-orange-500",
-  },
-];
+// Data
+const analytics = ref({});
+const visitorsChart = ref([]);
+const topPages = ref([]);
+const recentActivity = ref([]);
 
 const quickActions = [
   {
-    title: "Yeni Proje Ekle",
-    description: "Portfolio'ya yeni proje ekleyin",
+    title: "Yeni Proje",
+    description: "Proje ekleyin",
     icon: Plus,
     href: "/admin/projects/new",
     color: "bg-blue-600 hover:bg-blue-700",
   },
   {
-    title: "Mesajları Görüntüle",
-    description: "Gelen mesajları inceleyin",
+    title: "Mesajlar",
+    description: "Mesajları görün",
     icon: MessageSquare,
     href: "/admin/messages",
     color: "bg-green-600 hover:bg-green-700",
   },
   {
-    title: "Yetenekleri Yönet",
-    description: "Skill'lerinizi düzenleyin",
-    icon: Star,
-    href: "/admin/skills",
-    color: "bg-indigo-600 hover:bg-indigo-700",
-  },
-  {
-    title: "Site Ayarları",
-    description: "Genel ayarları düzenleyin",
-    icon: Settings,
-    href: "/admin/settings",
+    title: "Makaleler",
+    description: "Blog yönetimi",
+    icon: FileText,
+    href: "/admin/articles",
     color: "bg-purple-600 hover:bg-purple-700",
   },
   {
-    title: "Tüm Projeler",
-    description: "Proje listesini görüntüleyin",
-    icon: FileText,
+    title: "Projeler",
+    description: "Proje listesi",
+    icon: TrendingUp,
     href: "/admin/projects",
     color: "bg-orange-600 hover:bg-orange-700",
   },
+  {
+    title: "Ayarlar",
+    description: "Site ayarları",
+    icon: Settings,
+    href: "/admin/settings",
+    color: "bg-indigo-600 hover:bg-indigo-700",
+  },
 ];
 
-const recentActivities = [
-  {
-    action: "Yeni mesaj geldi",
-    description: "John Doe'dan proje hakkında soru",
-    time: "5 dakika önce",
-    icon: MessageSquare,
-  },
-  {
-    action: "Proje güncellendi",
-    description: "E-commerce projesi düzenlendi",
-    time: "2 saat önce",
-    icon: FileText,
-  },
-  {
-    action: "Site ziyaret edildi",
-    description: "15 yeni ziyaretçi",
-    time: "6 saat önce",
-    icon: Users,
-  },
-  {
-    action: "Portfolio güncellemesi",
-    description: "Yeni CV yüklendi",
-    time: "1 gün önce",
-    icon: Activity,
-  },
-];
+// Methods
+const loadAnalytics = async () => {
+  try {
+    const response = await axios.get('/api/analytics/overview');
+    analytics.value = response.data;
+  } catch (error) {
+    console.error('Analytics yüklenirken hata:', error);
+  }
+};
+
+const loadVisitorsChart = async () => {
+  chartLoading.value = true;
+  try {
+    const response = await axios.get(`/api/analytics/visitors-chart?days=${chartDays.value}`);
+    visitorsChart.value = response.data;
+  } catch (error) {
+    console.error('Ziyaretçi grafiği yüklenirken hata:', error);
+  } finally {
+    chartLoading.value = false;
+  }
+};
+
+const loadTopPages = async () => {
+  try {
+    const response = await axios.get('/api/analytics/top-pages');
+    topPages.value = response.data.slice(0, 5); // İlk 5 sayfa
+  } catch (error) {
+    console.error('Popüler sayfalar yüklenirken hata:', error);
+  }
+};
+
+const loadRecentActivity = async () => {
+  try {
+    const response = await axios.get('/api/analytics/recent-activity');
+    recentActivity.value = response.data.slice(0, 10); // İlk 10 aktivite
+  } catch (error) {
+    console.error('Son aktiviteler yüklenirken hata:', error);
+  }
+};
+
+const getChangeClass = (percent) => {
+  if (percent > 0) return 'text-green-600 text-xs font-medium';
+  if (percent < 0) return 'text-red-600 text-xs font-medium';
+  return 'text-gray-600 text-xs font-medium';
+};
+
+const formatChange = (percent) => {
+  if (percent === 0) return '±0%';
+  const sign = percent > 0 ? '+' : '';
+  return `${sign}${percent}%`;
+};
 
 const handleLogout = async () => {
   isLoggingOut.value = true;
-
   try {
     await logout();
   } catch (error) {
@@ -275,9 +375,24 @@ const handleQuickAction = (href) => {
 };
 
 onMounted(async () => {
-  // Auth durumunu kontrol et
-  const { checkAuth } = useAuth();
-  await checkAuth();
+  loading.value = true;
+  try {
+    // Auth durumunu kontrol et
+    const { checkAuth } = useAuth();
+    await checkAuth();
+    
+    // Parallel olarak tüm verileri yükle
+    await Promise.all([
+      loadAnalytics(),
+      loadVisitorsChart(),
+      loadTopPages(),
+      loadRecentActivity()
+    ]);
+  } catch (error) {
+    console.error('Dashboard verileri yüklenirken hata:', error);
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 

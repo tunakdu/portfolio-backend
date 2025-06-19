@@ -12,6 +12,7 @@ import AdminSettings from '../views/admin/Settings.vue';
 import AdminSkills from '../views/admin/Skills.vue';
 import AdminArticles from '../views/admin/Articles.vue';
 import ArticleForm from '../views/admin/ArticleForm.vue';
+import ArticleImport from '../views/admin/ArticleImport.vue';
 import BlogList from '../views/Blog.vue';
 import BlogDetail from '../views/BlogDetail.vue';
 import { useAuth } from '../composables/useAuth';
@@ -95,6 +96,12 @@ const routes = [
         name: 'AdminArticleEdit',
         component: ArticleForm,
         props: true,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/articles/import',
+        name: 'AdminArticleImport',
+        component: ArticleImport,
         meta: { requiresAuth: true },
     },
     {

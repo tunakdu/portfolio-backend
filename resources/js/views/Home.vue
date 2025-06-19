@@ -12,46 +12,46 @@
 
       <div class="space-y-4">
         <h2 class="text-lg sm:text-xl font-medium text-gray-600 mb-2">
-          {{ settings.heroGreeting || "👋 Merhaba, Ben" }}
+          {{ getInfo('heroGreeting', "👋 Merhaba, Ben") }}
         </h2>
 
         <h1 class="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-          {{ settings.name || "Tunahan Akduhan" }}
+          {{ getInfo('full_name', 'Tunahan Akduhan') }}
         </h1>
 
         <p class="text-xl sm:text-2xl text-gray-600 font-medium">
-          {{ settings.title || "Backend & API Developer" }}
+          {{ getInfo('title', 'Backend & API Developer') }}
         </p>
       </div>
 
       <p class="mt-8 max-w-2xl text-center text-gray-500 text-lg leading-relaxed">
-        {{ settings.heroDescription || "Laravel, Node.js, RESTful API'lar ve modern backend teknolojileri ile güvenli ve ölçeklenebilir sistemler geliştiriyorum." }}
+        {{ getInfo('bio', 'Laravel, Node.js, RESTful API\'lar ve modern backend teknolojileri ile güvenli ve ölçeklenebilir sistemler geliştiriyorum.') }}
       </p>
 
       <div class="mt-10 flex flex-wrap justify-center items-center gap-4">
         <div>
           <router-link to="/contact" class="action-button-primary">
             <Sparkles class="mr-2 h-5 w-5" />
-            {{ settings.contactButtonText || "İletişime Geç" }}
+            {{ getInfo('contactButtonText', "İletişime Geç") }}
             <ArrowRight class="ml-2 h-5 w-5" />
           </router-link>
         </div>
 
         <div>
-          <a :href="settings.cv_url || '/cv.pdf'" target="_blank" class="action-button-secondary">
+          <a :href="getInfo('cv_url', '/cv.pdf')" target="_blank" class="action-button-secondary">
             <Download class="mr-2 h-5 w-5" />
-            {{ settings.cvButtonText || "CV'mi İndir" }}
+            {{ getInfo('cvButtonText', "CV'mi İndir") }}
           </a>
         </div>
       </div>
 
       <div class="mt-12 flex justify-center gap-8">
-        <a :href="settings.github_url || '#'" target="_blank" aria-label="GitHub" class="group">
+        <a :href="getInfo('github_url', '#')" target="_blank" aria-label="GitHub" class="group">
           <div class="social-icon-wrapper">
             <Github class="social-icon" />
           </div>
         </a>
-        <a :href="settings.linkedin_url || '#'" target="_blank" aria-label="LinkedIn" class="group">
+        <a :href="getInfo('linkedin_url', '#')" target="_blank" aria-label="LinkedIn" class="group">
           <div class="social-icon-wrapper">
             <Linkedin class="social-icon" />
           </div>
@@ -66,15 +66,15 @@ import { ref, onMounted } from 'vue';
 import { Github, Linkedin, Sparkles, ArrowRight, Download } from 'lucide-vue-next';
 import ModernLogo from '../components/hero/ModernLogo.vue';
 import FloatingElements from '../components/hero/FloatingElements.vue';
+import { usePersonalInfo } from '../composables/usePersonalInfo';
 import axios from 'axios';
 
-const settings = ref({});
 const loading = ref(true);
+const { fetchPersonalInfo, getInfo, getSocialLinks, getFileUrls, personalInfo } = usePersonalInfo();
 
 onMounted(async () => {
   try {
-    const response = await axios.get('/api/site-settings');
-    settings.value = response.data || {};
+    await fetchPersonalInfo();
   } catch (error) {
     console.error("Ayarlar yüklenirken bir hata oluştu:", error);
   } finally {

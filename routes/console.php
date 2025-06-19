@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // E-posta mesajlarını her 2 dakikada bir senkronize et
-Schedule::command('email:sync')
+Schedule::command('emails:sync')
     ->everyTwoMinutes()
     ->withoutOverlapping()
     ->runInBackground()

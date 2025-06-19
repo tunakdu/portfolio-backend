@@ -13,13 +13,22 @@
             </button>
             <h1 class="text-2xl font-bold text-gray-900">Makaleler</h1>
           </div>
-          <button
-            @click="router.push('/admin/articles/new')"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-          >
-            <Plus class="w-4 h-4" />
-            <span>Yeni Makale</span>
-          </button>
+          <div class="flex items-center space-x-3">
+            <button
+              @click="router.push('/admin/articles/import')"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <Download class="w-4 h-4" />
+              <span>Medium'dan İçe Aktar</span>
+            </button>
+            <button
+              @click="router.push('/admin/articles/new')"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <Plus class="w-4 h-4" />
+              <span>Yeni Makale</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -123,7 +132,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Edit, Trash2, ExternalLink, FileText } from 'lucide-vue-next';
+import { Plus, Edit, Trash2, ExternalLink, FileText, Download } from 'lucide-vue-next';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 

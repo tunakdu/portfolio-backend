@@ -462,11 +462,13 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Save, Upload, User, Globe, FileText, Mail, Phone, MapPin, Github, Linkedin, Twitter, Instagram } from 'lucide-vue-next';
 import { useAuth } from '../../composables/useAuth.js';
+import { usePersonalInfo } from '../../composables/usePersonalInfo.js';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
 const router = useRouter();
 const { checkAuth } = useAuth();
+const { fetchPersonalInfo, updatePersonalInfo, personalInfo, isLoading: personalInfoLoading } = usePersonalInfo();
 
 const isLoading = ref(true);
 const isSaving = ref(false);
@@ -510,9 +512,29 @@ const formData = ref({
 
 const loadSettings = async () => {
   try {
-    const response = await axios.get('/api/site-settings');
-    if (response.data) {
-      formData.value = { ...formData.value, ...response.data };
+    // Personal info verilerini yükle
+    await fetchPersonalInfo();
+    
+    // Form verilerini personal info'dan doldur
+    if (personalInfo.value) {
+      formData.value = {
+        ...formData.value,
+        name: personalInfo.value.full_name || formData.value.name,
+        title: personalInfo.value.title || formData.value.title,
+        email: personalInfo.value.email || formData.value.email,
+        phone: personalInfo.value.phone || formData.value.phone,
+        location: personalInfo.value.location || formData.value.location,
+        bio: personalInfo.value.bio || formData.value.bio,
+        github: personalInfo.value.github_url || formData.value.github,
+        linkedin: personalInfo.value.linkedin_url || formData.value.linkedin,
+        twitter: personalInfo.value.twitter_url || formData.value.twitter,
+        instagram: personalInfo.value.instagram_url || formData.value.instagram,
+        siteTitle: personalInfo.value.site_title || formData.value.siteTitle,
+        siteDescription: personalInfo.value.site_description || formData.value.siteDescription,
+        keywords: personalInfo.value.site_keywords || formData.value.keywords,
+        resumeUrl: personalInfo.value.cv_url || formData.value.resumeUrl,
+        profileImage: personalInfo.value.profile_image || formData.value.profileImage
+      };
     }
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -524,7 +546,30 @@ const loadSettings = async () => {
 const handleSubmit = async () => {
   isSaving.value = true;
   try {
-    await axios.post('/api/site-settings', formData.value);
+    // Form verilerini PersonalInfo API formatına dönüştür
+    const personalInfoData = [
+      { key: 'full_name', value: formData.value.name, type: 'text', category: 'about' },
+      { key: 'title', value: formData.value.title, type: 'text', category: 'about' },
+      { key: 'email', value: formData.value.email, type: 'email', category: 'contact' },
+      { key: 'phone', value: formData.value.phone, type: 'phone', category: 'contact' },
+      { key: 'location', value: formData.value.location, type: 'text', category: 'about' },
+      { key: 'bio', value: formData.value.bio, type: 'text', category: 'about' },
+      { key: 'github_url', value: formData.value.github, type: 'url', category: 'social' },
+      { key: 'linkedin_url', value: formData.value.linkedin, type: 'url', category: 'social' },
+      { key: 'twitter_url', value: formData.value.twitter, type: 'url', category: 'social' },
+      { key: 'instagram_url', value: formData.value.instagram, type: 'url', category: 'social' },
+      { key: 'site_title', value: formData.value.siteTitle, type: 'text', category: 'site' },
+      { key: 'site_description', value: formData.value.siteDescription, type: 'text', category: 'site' },
+      { key: 'site_keywords', value: formData.value.keywords, type: 'text', category: 'site' },
+      { key: 'cv_url', value: formData.value.resumeUrl, type: 'url', category: 'files' },
+      { key: 'profile_image', value: formData.value.profileImage, type: 'url', category: 'files' }
+    ];
+
+    // Boş değerleri filtrele
+    const filteredData = personalInfoData.filter(item => item.value && item.value.trim() !== '');
+
+    // PersonalInfo API'sini kullan
+    await updatePersonalInfo(filteredData);
     
     Swal.fire({
       toast: true,

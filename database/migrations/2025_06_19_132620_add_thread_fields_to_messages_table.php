@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            if (!Schema::hasColumn('messages', 'subject')) {
-                $table->string('subject')->nullable()->after('email');
-            }
+            $table->string('thread_id')->nullable()->after('subject');
+            $table->enum('message_type', ['incoming', 'outgoing'])->default('incoming')->after('source');
+            $table->timestamp('message_date')->nullable()->after('message_type');
         });
     }
 
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->dropColumn('subject');
+            $table->dropColumn(['thread_id', 'message_type', 'message_date']);
         });
     }
 };

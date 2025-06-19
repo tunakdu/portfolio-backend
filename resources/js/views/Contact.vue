@@ -24,7 +24,7 @@
             <component :is="item.icon" class="w-8 h-8" />
           </div>
           <h3 class="text-xl font-bold text-gray-900 mb-2">{{ item.title }}</h3>
-          <a :href="item.href" class="text-lg font-medium text-blue-600 hover:text-blue-700 transition-colors block mb-2">
+          <a :href="item.href" @click="handleContactClick(item)" class="text-lg font-medium text-blue-600 hover:text-blue-700 transition-colors block mb-2">
             {{ item.value }}
           </a>
           <p class="text-sm text-gray-600">{{ item.description }}</p>
@@ -111,14 +111,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, shallowRef } from 'vue';
+import { ref, onMounted, shallowRef, computed } from 'vue';
 import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle } from 'lucide-vue-next';
+import { usePersonalInfo } from '../composables/usePersonalInfo';
+import { useAnalytics } from '../plugins/analytics.js';
 import axios from 'axios';
 
 const settings = ref(null);
-const loading = ref(false); // Başlangıçta yüklenmiyor
+const loading = ref(false);
 const isSubmitting = ref(false);
-const submitStatus = ref('idle'); // 'idle', 'success', 'error'
+const submitStatus = ref('idle');
+const { fetchPersonalInfo, getContactInfo, getInfo } = usePersonalInfo();
+const { trackContact, trackEmailClick, trackPhoneClick, trackFormSubmit } = useAnalytics();
 
 const form = ref({
   name: '',
@@ -127,17 +131,12 @@ const form = ref({
 });
 
 const errors = ref({});
+const contactInfo = computed(() => {
+    const displayEmail = getInfo('email') || "akduhant@gmail.com";
+    const displayPhone = getInfo('phone') || "+90 542 740 19 96";
+    const displayLocation = getInfo('address') || getInfo('location') || "Bursa, Türkiye";
 
-const contactInfo = ref([]);
-
-// API çağrılarını statik veriyle değiştiriyoruz.
-// Gerçek bir projede bu verileri API'den alabilirsiniz.
-const setupPageData = () => {
-    const displayEmail = "akduhant@gmail.com";
-    const displayPhone = "+90 542 740 19 96";
-    const displayLocation = "Bursa, Türkiye";
-
-    contactInfo.value = [
+    return [
         {
             icon: shallowRef(Mail),
             title: "Email",
@@ -150,8 +149,8 @@ const setupPageData = () => {
             icon: shallowRef(Phone),
             title: "Telefon",
             value: displayPhone,
-            href: `tel:${displayPhone.replace(/\s/g, '')}`,
-            description: "Haftaiçi 09:00 - 18:00 arasında ulaşabilirsiniz",
+            href: `tel:${displayPhone}`,
+            description: "Haftanın 6 günü erişilebilirim",
             color: "bg-green-100 text-green-600"
         },
         {
@@ -159,14 +158,14 @@ const setupPageData = () => {
             title: "Konum",
             value: displayLocation,
             href: "#",
-            description: "Uzaktan çalışma ve ofis toplantıları mümkün",
+            description: "Yakın çevrede buluşabiliriz",
             color: "bg-purple-100 text-purple-600"
         }
     ];
-};
+});
 
-onMounted(() => {
-    setupPageData();
+onMounted(async () => {
+  await fetchPersonalInfo();
 });
 
 const validate = () => {
@@ -198,6 +197,10 @@ const onSubmit = async () => {
     submitStatus.value = 'success';
     form.value = { name: '', email: '', message: '' }; // Formu sıfırla
     errors.value = {}; // Hataları temizle
+    
+    // Track successful form submission
+    trackFormSubmit('contact_form');
+    trackContact('form_submission');
   } catch (err) {
     submitStatus.value = 'error';
     console.error('Mesaj gönderme hatası:', err);
@@ -208,6 +211,20 @@ const onSubmit = async () => {
     }, 5000); // 5 saniye sonra durumu sıfırla
   }
 };
+
+// Analytics tracking functions
+const handleContactClick = (item) => {
+  if (item.title === 'Email') {
+    trackEmailClick();
+  } else if (item.title === 'Telefon') {
+    trackPhoneClick();
+  }
+  trackContact(item.title.toLowerCase());
+};
+
+onMounted(async () => {
+  await fetchPersonalInfo();
+});
 </script>
 
 <style scoped>
