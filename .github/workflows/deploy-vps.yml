@@ -64,11 +64,13 @@ jobs:
           cp .env.example .env
           
           # .env dosyasını güncelle
+          sed -i 's|APP_NAME=.*|APP_NAME="Portfolio"|' .env
+          sed -i 's|APP_ENV=.*|APP_ENV=production|' .env
+          sed -i 's|APP_DEBUG=.*|APP_DEBUG=false|' .env
           sed -i 's|APP_URL=.*|APP_URL=https://akduhan.com|' .env
-          sed -i 's|DB_DATABASE=.*|DB_DATABASE=tunakdu_portfolio|' .env
-          sed -i 's|DB_USERNAME=.*|DB_USERNAME=root|' .env
-          sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=i[Nw(SS9V#GiYZ+d|' .env
-          sed -i 's|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS="tunakdu@akduhan.com"|' .env
+          sed -i 's|DB_DATABASE=.*|DB_DATABASE=tunakdu|' .env
+          sed -i 's|DB_USERNAME=.*|DB_USERNAME=tunakdu|' .env
+          sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=BKWHSA0XSOs1yQE|' .env
           sed -i 's|SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=akduhan.com,www.akduhan.com|' .env
           
           # Composer dependencies yükle
