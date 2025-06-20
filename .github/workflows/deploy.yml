@@ -140,11 +140,42 @@ jobs:
           echo "🔍 IMAP .env kontrol:"
           grep "IMAP_" .env | head -4
           
-          # Mail config dosyasının varlığını kontrol et
+          # Mail config dosyasının varlığını kontrol et ve IMAP section ekle
           echo "🔍 Config dosyası kontrol:"
           if [ -f config/mail.php ]; then
             echo "✅ config/mail.php mevcut"
-            grep -A 10 "imap.*=>" config/mail.php || echo "⚠️ IMAP section bulunamadı"
+            if grep -q "imap.*=>" config/mail.php; then
+              echo "✅ IMAP section mevcut"
+            else
+              echo "⚠️ IMAP section bulunamadı, ekleniyor..."
+              
+              # IMAP section'ını ekle
+              cp config/mail.php config/mail.php.backup
+              
+              # IMAP section'ını dosyanın sonuna ekle (]; den önce)
+              sed -i.tmp '/^];$/i\
+\
+    /*\
+    |--------------------------------------------------------------------------\
+    | IMAP Configuration for Email Sync\
+    |--------------------------------------------------------------------------\
+    |\
+    | Configuration for IMAP email synchronization service.\
+    | Used to fetch incoming emails from mail server.\
+    |\
+    */\
+\
+    '\''imap'\'' => [\
+        '\''host'\'' => env('\''IMAP_HOST'\''),\
+        '\''port'\'' => env('\''IMAP_PORT'\'', 993),\
+        '\''username'\'' => env('\''IMAP_USERNAME'\''),\
+        '\''password'\'' => env('\''IMAP_PASSWORD'\''),\
+        '\''encryption'\'' => env('\''IMAP_ENCRYPTION'\'', '\''ssl'\''),\
+    ],\
+' config/mail.php && rm config/mail.php.tmp
+              
+              echo "✅ IMAP section eklendi"
+            fi
           else
             echo "❌ config/mail.php bulunamadı"
           fi
