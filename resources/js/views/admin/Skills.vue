@@ -87,14 +87,14 @@
           <!-- Technologies Preview -->
           <div class="flex flex-wrap gap-1 mb-4">
             <span
-              v-for="tech in skill.technologies.slice(0, 3)"
+              v-for="tech in (Array.isArray(skill.technologies) ? skill.technologies : []).slice(0, 3)"
               :key="tech"
               class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium"
             >
               {{ tech }}
             </span>
             <span
-              v-if="skill.technologies.length > 3"
+              v-if="Array.isArray(skill.technologies) && skill.technologies.length > 3"
               class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium"
             >
               +{{ skill.technologies.length - 3 }} daha
@@ -270,7 +270,7 @@
               </label>
               <div class="flex flex-wrap gap-2 mb-3">
                 <span
-                  v-for="(tech, index) in formData.technologies"
+                  v-for="(tech, index) in (Array.isArray(formData.technologies) ? formData.technologies : [])"
                   :key="index"
                   class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-2"
                 >
@@ -388,8 +388,13 @@ const getSkillIcon = (iconName) => {
 
 const fetchSkills = async () => {
   try {
-    const response = await axios.get('/api/v1/admin/skills');
-    skills.value = response.data;
+    const response = await axios.get('/api/skills');
+    skills.value = response.data.map(skill => ({
+      ...skill,
+      technologies: typeof skill.technologies === 'string' 
+        ? JSON.parse(skill.technologies) 
+        : (Array.isArray(skill.technologies) ? skill.technologies : [])
+    }));
   } catch (error) {
     console.error('Error fetching skills:', error);
     skills.value = [];
@@ -399,8 +404,12 @@ const fetchSkills = async () => {
 };
 
 const addTechnology = () => {
-  if (newTechnology.value.trim() && !formData.value.technologies.includes(newTechnology.value.trim())) {
-    formData.value.technologies.push(newTechnology.value.trim());
+  const techName = newTechnology.value.trim();
+  if (!Array.isArray(formData.value.technologies)) {
+    formData.value.technologies = [];
+  }
+  if (techName && !formData.value.technologies.includes(techName)) {
+    formData.value.technologies.push(techName);
     newTechnology.value = '';
   }
 };
@@ -436,7 +445,7 @@ const editSkill = (skill) => {
     description: skill.description,
     icon: skill.icon,
     color: skill.color,
-    technologies: [...skill.technologies],
+    technologies: Array.isArray(skill.technologies) ? [...skill.technologies] : [],
     proficiency_level: skill.proficiency_level,
     order: skill.order,
     is_active: skill.is_active
@@ -448,12 +457,17 @@ const handleSubmit = async () => {
   try {
     if (editingSkill.value) {
       // Update existing skill
-      await axios.put(`/api/v1/admin/skills/${editingSkill.value.id}`, formData.value);
+      const response = await axios.put(`/api/skills/${editingSkill.value.id}`, formData.value);
       
-      // Update local state
+      // Update local state with fresh data from backend
       const index = skills.value.findIndex(s => s.id === editingSkill.value.id);
       if (index !== -1) {
-        skills.value[index] = { ...editingSkill.value, ...formData.value };
+        skills.value[index] = {
+          ...response.data,
+          technologies: typeof response.data.technologies === 'string' 
+            ? JSON.parse(response.data.technologies) 
+            : (Array.isArray(response.data.technologies) ? response.data.technologies : [])
+        };
       }
       
       Swal.fire({
@@ -467,8 +481,14 @@ const handleSubmit = async () => {
       });
     } else {
       // Create new skill
-      const response = await axios.post('/api/v1/admin/skills', formData.value);
-      skills.value.push(response.data);
+      const response = await axios.post('/api/skills', formData.value);
+      const newSkill = {
+        ...response.data,
+        technologies: typeof response.data.technologies === 'string' 
+          ? JSON.parse(response.data.technologies) 
+          : (Array.isArray(response.data.technologies) ? response.data.technologies : [])
+      };
+      skills.value.push(newSkill);
       
       Swal.fire({
         toast: true,
@@ -509,7 +529,7 @@ const handleDelete = async (skillId) => {
 
   if (result.isConfirmed) {
     try {
-      await axios.delete(`/api/v1/admin/skills/${skillId}`);
+      await axios.delete(`/api/skills/${skillId}`);
       
       // Remove from local state
       skills.value = skills.value.filter(s => s.id !== skillId);

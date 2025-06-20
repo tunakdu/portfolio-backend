@@ -125,7 +125,7 @@
                 <!-- Technology Count -->
                 <div class="flex items-center text-sm text-gray-500">
                   <span class="mr-1">🛠️</span>
-                  <span>{{ skill.technologies?.length || 0 }} teknoloji</span>
+                  <span>{{ (Array.isArray(skill.technologies) ? skill.technologies.length : 0) }} teknoloji</span>
                 </div>
               </div>
 
@@ -382,12 +382,12 @@
                 <span class="mr-2">🛠️</span>
                 Teknolojiler & Araçlar
                 <span class="ml-2 text-sm text-gray-500">
-                  ({{ selectedSkill.technologies.length }} adet)
+                  ({{ (Array.isArray(selectedSkill.technologies) ? selectedSkill.technologies.length : 0) }} adet)
                 </span>
               </h3>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div
-                  v-for="(tech, index) in selectedSkill.technologies"
+                  v-for="(tech, index) in (Array.isArray(selectedSkill.technologies) ? selectedSkill.technologies : [])"
                   :key="tech"
                   class="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-blue-50 hover:to-purple-50 border border-gray-200 hover:border-blue-300 rounded-lg p-3 text-center transition-all duration-300 transform hover:scale-105 animate-fade-up"
                   :style="{ animationDelay: `${index * 0.05}s` }"
@@ -463,88 +463,84 @@ const aboutData = computed(() => {
   };
 });
 
-const skills = computed(() => {
-  const skillsData = getSkills();
-  
-  const fallbackSkills = [
-    {
-      id: '1',
-      title: 'Backend Development',
-      description: 'Laravel, PHP, Node.js ile güvenli ve ölçeklenebilir backend sistemler geliştiriyorum.',
-      icon: 'Server',
-      color: 'from-blue-500 to-blue-600',
-      technologies: ['Laravel', 'PHP', 'Node.js', 'Express.js', 'MySQL', 'PostgreSQL', 'Redis'],
-      proficiency_level: 5,
-      order: 1
-    },
-    {
-      id: '2',
-      title: 'API Development',
-      description: 'RESTful API tasarımı, entegrasyonu ve dokümantasyonu konularında uzmanlığım var.',
-      icon: 'Code',
-      color: 'from-green-500 to-green-600',
-      technologies: ['REST API', 'GraphQL', 'Sanctum', 'Postman', 'Swagger', 'API Security'],
-      proficiency_level: 5,
-      order: 2
-    },
-    {
-      id: '3',
-      title: 'Database Management',
-      description: 'Veri modelleme, optimizasyon ve yönetimi konularında deneyimliyim.',
-      icon: 'Database',
-      color: 'from-purple-500 to-purple-600',
-      technologies: ['MySQL', 'PostgreSQL', 'Eloquent ORM', 'Redis', 'MongoDB'],
-      proficiency_level: 4,
-      order: 3
-    },
-    {
-      id: '4',
-      title: 'Frontend Development',
-      description: 'Modern JavaScript framework\'leri ile kullanıcı dostu arayüzler geliştiriyorum.',
-      icon: 'Globe',
-      color: 'from-orange-500 to-orange-600',
-      technologies: ['React', 'Vue.js', 'Next.js', 'TypeScript', 'Tailwind CSS'],
-      proficiency_level: 4,
-      order: 4
-    },
-    {
-      id: '5',
-      title: 'DevOps & Deployment',
-      description: 'CI/CD pipeline\'ları ve cloud teknolojileri ile deployment süreçlerini yönetiyorum.',
-      icon: 'Cloud',
-      color: 'from-indigo-500 to-indigo-600',
-      technologies: ['Docker', 'AWS', 'CI/CD', 'Linux', 'Nginx', 'Apache'],
-      proficiency_level: 4,
-      order: 5
-    },
-    {
-      id: '6',
-      title: 'Search & Analytics',
-      description: 'Elasticsearch ve analitik sistemlerin tasarımı ve optimizasyonu.',
-      icon: 'Search',
-      color: 'from-red-500 to-red-600',
-      technologies: ['Elasticsearch', 'Laravel Scout', 'Algolia', 'Analytics'],
-      proficiency_level: 4,
-      order: 6
-    }
-  ];
-  
-  // Database'den gelen skills varsa onları döndür
-  if (skillsData && Object.keys(skillsData).length > 0) {
-    return Object.entries(skillsData).map(([category, techs], index) => ({
-      id: String(index + 1),
-      title: category,
-      description: `${category} teknolojileri ile profesyonel çözümler geliştiriyorum.`,
-      icon: 'Code',
-      color: `from-blue-500 to-purple-600`,
-      technologies: Array.isArray(techs) ? techs : [],
-      proficiency_level: 4,
-      order: index + 1
+const skills = ref([]);
+
+const fetchSkills = async () => {
+  try {
+    const response = await axios.get('/api/skills');
+    skills.value = response.data.map(skill => ({
+      ...skill,
+      technologies: typeof skill.technologies === 'string' 
+        ? JSON.parse(skill.technologies) 
+        : (Array.isArray(skill.technologies) ? skill.technologies : [])
     }));
+  } catch (error) {
+    console.error('Skills yüklenemedi:', error);
+    // Fallback skills
+    skills.value = [
+      {
+        id: '1',
+        title: 'Backend Development',
+        description: 'Laravel, PHP, Node.js ile güvenli ve ölçeklenebilir backend sistemler geliştiriyorum.',
+        icon: 'Server',
+        color: 'from-blue-500 to-blue-600',
+        technologies: ['Laravel', 'PHP', 'Node.js', 'Express.js', 'MySQL', 'PostgreSQL', 'Redis'],
+        proficiency_level: 5,
+        order: 1
+      },
+      {
+        id: '2',
+        title: 'API Development',
+        description: 'RESTful API tasarımı, entegrasyonu ve dokümantasyonu konularında uzmanlığım var.',
+        icon: 'Code',
+        color: 'from-green-500 to-green-600',
+        technologies: ['REST API', 'GraphQL', 'Sanctum', 'Postman', 'Swagger', 'API Security'],
+        proficiency_level: 5,
+        order: 2
+      },
+      {
+        id: '3',
+        title: 'Database Management',
+        description: 'Veri modelleme, optimizasyon ve yönetimi konularında deneyimliyim.',
+        icon: 'Database',
+        color: 'from-purple-500 to-purple-600',
+        technologies: ['MySQL', 'PostgreSQL', 'Eloquent ORM', 'Redis', 'MongoDB'],
+        proficiency_level: 4,
+        order: 3
+      },
+      {
+        id: '4',
+        title: 'Frontend Development',
+        description: 'Modern JavaScript framework\'leri ile kullanıcı dostu arayüzler geliştiriyorum.',
+        icon: 'Globe',
+        color: 'from-orange-500 to-orange-600',
+        technologies: ['React', 'Vue.js', 'Next.js', 'TypeScript', 'Tailwind CSS'],
+        proficiency_level: 4,
+        order: 4
+      },
+      {
+        id: '5',
+        title: 'DevOps & Deployment',
+        description: 'CI/CD pipeline\'ları ve cloud teknolojileri ile deployment süreçlerini yönetiyorum.',
+        icon: 'Cloud',
+        color: 'from-indigo-500 to-indigo-600',
+        technologies: ['Docker', 'AWS', 'CI/CD', 'Linux', 'Nginx', 'Apache'],
+        proficiency_level: 4,
+        order: 5
+      },
+      {
+        id: '6',
+        title: 'Search & Analytics',
+        description: 'Elasticsearch ve analitik sistemlerin tasarımı ve optimizasyonu.',
+        icon: 'Search',
+        color: 'from-red-500 to-red-600',
+        technologies: ['Elasticsearch', 'Laravel Scout', 'Algolia', 'Analytics'],
+        proficiency_level: 4,
+        order: 6
+      }
+    ];
   }
-  
-  return fallbackSkills;
-});
+};
 
 const socialLinks = computed(() => {
   return [
@@ -736,12 +732,13 @@ const getTechBadgeColor = (index) => {
 
 const fetchAboutData = async () => {
   try {
-    // Fetch personal info
+    // Fetch personal info and skills
     await fetchPersonalInfo();
-    // Fetch CV data
+    // Fetch CV data and skills
     await Promise.all([
       fetchExperiences(),
-      fetchEducation()
+      fetchEducation(),
+      fetchSkills()
     ]);
   } catch (error) {
     console.error('About verileri alınamadı, static data kullanılıyor:', error);
