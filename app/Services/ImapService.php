@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Message;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ImapService
 {
@@ -30,28 +31,28 @@ class ImapService
     protected function connect()
     {
         $mailbox = '{' . $this->host . ':' . $this->port . '/imap';
-        
+
         if ($this->encryption === 'ssl') {
             $mailbox .= '/ssl';
         }
-        
+
         // SSL sertifika doğrulamasını kapat
         $mailbox .= '/novalidate-cert';
-        
+
         $mailbox .= '}INBOX';
-        
+
         Log::info('IMAP bağlantı denemesi: ' . $mailbox);
         Log::info('IMAP kullanıcı: ' . $this->username);
-        
+
         $this->connection = imap_open($mailbox, $this->username, $this->password);
-        
+
         if (!$this->connection) {
-            $errors = imap_errors();
             $lastError = imap_last_error();
-            Log::error('IMAP hatası: ' . $lastError);
+            $errors = imap_errors();
+            Log::error('IMAP hatası: ' . $lastError, ['errors' => $errors]);
             throw new \Exception('IMAP bağlantısı kurulamadı: ' . $lastError);
         }
-        
+
         return $this->connection;
     }
 
@@ -67,161 +68,268 @@ class ImapService
     }
 
     /**
+     * Benzersiz thread ID oluştur
+     */
+    protected function generateThreadId($subject, $fromEmail)
+    {
+        // Subject'i temizle (Re:, Fwd: etc.)
+        $cleanSubject = preg_replace('/^(Re:|RE:|Fwd:|FWD:|AW:|Aw:)\s*/i', '', trim($subject));
+        $cleanSubject = trim($cleanSubject);
+
+        // Boş subject kontrolü
+        if (empty($cleanSubject)) {
+            $cleanSubject = 'no-subject';
+        }
+
+        // Email domainini al
+        $emailParts = explode('@', $fromEmail);
+        $emailDomain = isset($emailParts[1]) ? $emailParts[1] : 'unknown';
+
+        // Benzersiz thread ID oluştur: subject + email domain kombinasyonu
+        $threadId = md5(strtolower($cleanSubject) . '|' . strtolower($emailDomain));
+
+        Log::debug("Thread ID oluşturuldu - Subject: '{$cleanSubject}', Email: {$fromEmail}, Thread ID: {$threadId}");
+
+        return $threadId;
+    }
+
+    /**
+     * Benzersiz message ID oluştur
+     */
+    protected function generateMessageId($header, $fromEmail, $subject)
+    {
+        // Önce email header'dan message-id'yi al
+        if (isset($header->message_id) && !empty(trim($header->message_id))) {
+            return trim($header->message_id);
+        }
+
+        // Message-ID yoksa benzersiz bir tane oluştur
+        $timestamp = isset($header->udate) ? $header->udate : time();
+        $uniqueId = md5($fromEmail . $subject . $timestamp . microtime(true));
+
+        return '<' . $uniqueId . '@' . parse_url($this->host, PHP_URL_HOST) . '>';
+    }
+
+    /**
+     * E-posta duplikasyon kontrolü
+     */
+    protected function isDuplicateMessage($messageId, $fromEmail, $subject, $messageDate)
+    {
+        // 1. Message-ID ile kontrol (en güvenilir)
+        if ($messageId) {
+            $existing = Message::where('message_id', $messageId)->first();
+            if ($existing) {
+                Log::info("Duplikasyon tespit edildi (Message-ID): {$messageId} - {$subject}");
+                return true;
+            }
+        }
+
+        // 2. Email + Subject + Date kombinasyonu ile kontrol
+        $dateWindow = 5; // 5 dakika tolerans
+        $existing = Message::where('email', $fromEmail)
+            ->where('subject', $subject)
+            ->where('message_date', '>=', $messageDate->copy()->subMinutes($dateWindow))
+            ->where('message_date', '<=', $messageDate->copy()->addMinutes($dateWindow))
+            ->first();
+
+        if ($existing) {
+            Log::info("Duplikasyon tespit edildi (Email+Subject+Date): {$fromEmail} - {$subject}");
+            return true;
+        }
+
+        // 3. Subject hash ile kontrol (case-insensitive, Re: vs olmadan)
+        $cleanSubject = preg_replace('/^(Re:|RE:|Fwd:|FWD:|AW:|Aw:)\s*/i', '', trim($subject));
+        $subjectHash = md5(strtolower($cleanSubject));
+
+        $existing = Message::where('email', $fromEmail)
+            ->whereRaw('MD5(LOWER(TRIM(REGEXP_REPLACE(subject, "^(Re:|RE:|Fwd:|FWD:|AW:|Aw:)[[:space:]]*", "")))) = ?', [$subjectHash])
+            ->where('message_date', '>=', $messageDate->copy()->subHours(12))
+            ->first();
+
+        if ($existing) {
+            Log::info("Duplikasyon tespit edildi (Subject Hash): {$fromEmail} - {$cleanSubject}");
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Email body'sini temizle ve düzenle
+     */
+    protected function cleanEmailBody($body, $structure)
+    {
+        // Encoding kontrolü ve decode
+        if (isset($structure->encoding)) {
+            switch ($structure->encoding) {
+                case 3: // Base64
+                    $body = base64_decode($body);
+                    break;
+                case 4: // Quoted-printable
+                    $body = quoted_printable_decode($body);
+                    break;
+            }
+        }
+
+        // HTML taglerini temizle
+        $body = strip_tags($body);
+
+        // Reply kısımlarını temizle
+        $lines = explode("\n", $body);
+        $cleanLines = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Boş satırları atla
+            if (empty($line)) {
+                continue;
+            }
+
+            // > ile başlayan satırları atla (quoted text)
+            if (strpos($line, '>') === 0) {
+                continue;
+            }
+
+            // Reply indicators
+            if (preg_match('/^(On .* wrote:|.*yazd.*:|.*schrieb.*:)/i', $line)) {
+                break;
+            }
+
+            // Email signatures
+            if (preg_match('/^(--|__)/i', $line)) {
+                break;
+            }
+
+            $cleanLines[] = $line;
+        }
+
+        $body = implode(' ', $cleanLines);
+
+        // Fazla boşlukları temizle
+        $body = preg_replace('/\r\n|\r|\n/', ' ', $body);
+        $body = preg_replace('/\s+/', ' ', $body);
+        $body = trim($body);
+
+        // UTF-8 encoding garantisi
+        if (!mb_check_encoding($body, 'UTF-8')) {
+            $body = mb_convert_encoding($body, 'UTF-8', 'auto');
+        }
+
+        // Minimum uzunluk kontrolü
+        if (strlen($body) < 10) {
+            $body = '[Email içeriği okunamadı veya çok kısa]';
+        }
+
+        return $body;
+    }
+
+    /**
+     * Email yapısından body'yi al
+     */
+    protected function getEmailBody($msgno, $structure)
+    {
+        $body = '';
+
+        if ($structure->type == 1) { // Multipart
+            // HTML veya text parçası ara
+            if (isset($structure->parts) && is_array($structure->parts)) {
+                foreach ($structure->parts as $partIndex => $part) {
+                    $partNumber = $partIndex + 1;
+
+                    // Text/plain önceliği
+                    if ($part->subtype === 'PLAIN') {
+                        $body = imap_fetchbody($this->connection, $msgno, $partNumber);
+                        break;
+                    }
+
+                    // HTML alternatifi
+                    if (empty($body) && $part->subtype === 'HTML') {
+                        $body = imap_fetchbody($this->connection, $msgno, $partNumber);
+                    }
+                }
+            }
+
+            // Hiçbir part bulunamazsa ilk parçayı al
+            if (empty($body)) {
+                $body = imap_fetchbody($this->connection, $msgno, '1.1');
+            }
+        } else {
+            // Single part message
+            $body = imap_fetchbody($this->connection, $msgno, 1);
+        }
+
+        return $this->cleanEmailBody($body, $structure);
+    }
+
+    /**
      * Yeni e-postaları çek ve veritabanına kaydet
      */
     public function fetchNewEmails()
     {
         try {
             $this->connect();
-            
-            // Son 7 gündeki e-postaları ara
-            $since = date('d-M-Y', strtotime('-7 days'));
+
+            // Son 3 gündeki e-postaları ara (duplikasyon riskini azaltmak için daha kısa süre)
+            $since = date('d-M-Y', strtotime('-3 days'));
             $emails = imap_search($this->connection, 'SINCE "' . $since . '"', SE_UID);
-            
+
             $newMessages = [];
-            
+            $processedCount = 0;
+            $duplicateCount = 0;
+
             if ($emails) {
+                Log::info('IMAP: ' . count($emails) . ' email bulundu, işleniyor...');
+
                 foreach ($emails as $uid) {
-                    $msgno = imap_msgno($this->connection, $uid);
-                    $header = imap_headerinfo($this->connection, $msgno);
-                    
-                    // E-posta bilgilerini al
-                    $subject = isset($header->subject) ? imap_utf8($header->subject) : 'Konu Yok';
-                    $from = isset($header->from[0]) ? $header->from[0] : null;
-                    $fromEmail = $from ? $from->mailbox . '@' . $from->host : 'bilinmiyor@example.com';
-                    $fromName = isset($from->personal) ? imap_utf8($from->personal) : $fromEmail;
-                    
-                    // Benzersiz Message-ID al
-                    $messageId = isset($header->message_id) ? $header->message_id : null;
-                    
-                    // Thread ID oluştur (subject bazlı)
-                    $threadId = md5(preg_replace('/^(Re:|RE:|Fwd:|FWD:)\s*/i', '', trim($subject)));
-                    
-                    // Message type belirle (tunahan@akduhan.com'dan geliyorsa outgoing)
-                    $messageType = ($fromEmail === 'tunahan@akduhan.com') ? 'outgoing' : 'incoming';
-                    
-                    // 🧵 Güçlendirilmiş Çoklu Duplikasyon Kontrolü
-                    $existingMessage = null;
-                    $messageDate = Carbon::parse($header->date);
-                    
-                    // 1. Message-ID ile kontrol (en güvenilir)
-                    if ($messageId) {
-                        $existingMessage = Message::where('message_id', $messageId)->first();
-                        if ($existingMessage) {
-                            Log::info("Duplikasyon tespit edildi (Message-ID): {$subject}");
+                    $processedCount++;
+
+                    try {
+                        $msgno = imap_msgno($this->connection, $uid);
+                        $header = imap_headerinfo($this->connection, $msgno);
+
+                        if (!$header) {
+                            Log::warning("Email header alınamadı: UID {$uid}");
+                            continue;
                         }
-                    }
-                    
-                    // 2. Thread ID ile kontrol - Aynı thread'de aynı tarihte mesaj var mı?
-                    if (!$existingMessage) {
-                        $existingMessage = Message::where('thread_id', $threadId)
-                            ->where('email', $fromEmail)
-                            ->where('message_date', '>=', $messageDate->copy()->subMinutes(1))
-                            ->where('message_date', '<=', $messageDate->copy()->addMinutes(1))
-                            ->first();
-                        if ($existingMessage) {
-                            Log::info("Duplikasyon tespit edildi (Thread-ID + Date): {$subject}");
+
+                        // E-posta bilgilerini al
+                        $subject = isset($header->subject) ? imap_utf8($header->subject) : 'Konu Yok';
+                        $from = isset($header->from[0]) ? $header->from[0] : null;
+
+                        if (!$from) {
+                            Log::warning("Email from bilgisi alınamadı: UID {$uid}");
+                            continue;
                         }
-                    }
-                    
-                    // 3. Subject + Email + Date ile kesin kontrol
-                    if (!$existingMessage) {
-                        $existingMessage = Message::where('email', $fromEmail)
-                            ->where('subject', $subject)
-                            ->where('message_date', '>=', $messageDate->copy()->subMinutes(2))
-                            ->where('message_date', '<=', $messageDate->copy()->addMinutes(2))
-                            ->first();
-                        if ($existingMessage) {
-                            Log::info("Duplikasyon tespit edildi (Subject + Email + Date): {$subject}");
+
+                        $fromEmail = $from->mailbox . '@' . $from->host;
+                        $fromName = isset($from->personal) ? imap_utf8($from->personal) : $fromEmail;
+
+                        // Date parsing
+                        $messageDate = isset($header->date) ? Carbon::parse($header->date) : Carbon::now();
+
+                        // Benzersiz Message-ID oluştur/al
+                        $messageId = $this->generateMessageId($header, $fromEmail, $subject);
+
+                        // Duplikasyon kontrolü
+                        if ($this->isDuplicateMessage($messageId, $fromEmail, $subject, $messageDate)) {
+                            $duplicateCount++;
+                            continue;
                         }
-                    }
-                    
-                    // 4. Exact match - Subject hash ve body preview ile
-                    if (!$existingMessage) {
-                        $subjectNormalized = preg_replace('/^(Re:|RE:|Fwd:|FWD:)\s*/i', '', trim($subject));
-                        $subjectHash = md5(strtolower($subjectNormalized));
-                        
-                        $existingMessage = Message::where('email', $fromEmail)
-                            ->whereRaw('MD5(LOWER(TRIM(REGEXP_REPLACE(subject, "^(Re:|RE:|Fwd:|FWD:)[[:space:]]*", "")))) = ?', [$subjectHash])
-                            ->where('created_at', '>=', $messageDate->copy()->subHours(24))
-                            ->first();
-                        if ($existingMessage) {
-                            Log::info("Duplikasyon tespit edildi (Subject Hash): {$subject}");
-                        }
-                    }
-                    
-                    if (!$existingMessage) {
-                        // Email yapısını kontrol et
+
+                        // Thread ID oluştur
+                        $threadId = $this->generateThreadId($subject, $fromEmail);
+
+                        // Message type belirle
+                        $messageType = ($fromEmail === 'tunahan@akduhan.com') ? 'outgoing' : 'incoming';
+
+                        // Email body'sini al
                         $structure = imap_fetchstructure($this->connection, $msgno);
-                        $body = '';
-                        
-                        if ($structure->type == 1) { // Multipart
-                            // HTML veya text parçası ara
-                            for ($i = 1; $i <= $structure->parts[0]->parts ?? 1; $i++) {
-                                $partBody = imap_fetchbody($this->connection, $msgno, $i);
-                                if (!empty($partBody)) {
-                                    $body = $partBody;
-                                    break;
-                                }
-                            }
-                            if (empty($body)) {
-                                $body = imap_fetchbody($this->connection, $msgno, '1.1');
-                            }
-                        } else {
-                            $body = imap_fetchbody($this->connection, $msgno, 1);
-                        }
-                        
-                        // Encoding kontrolü ve decode
-                        if (isset($structure->encoding)) {
-                            switch ($structure->encoding) {
-                                case 3: // Base64
-                                    $body = base64_decode($body);
-                                    break;
-                                case 4: // Quoted-printable
-                                    $body = quoted_printable_decode($body);
-                                    break;
-                            }
-                        }
-                        
-                        // HTML taglerini temizle
-                        $body = strip_tags($body);
-                        
-                        // Reply kısımlarını temizle
-                        $lines = explode("\n", $body);
-                        $cleanLines = [];
-                        
-                        foreach ($lines as $line) {
-                            $line = trim($line);
-                            
-                            // > ile başlayan satırları atla
-                            if (strpos($line, '>') === 0) {
-                                continue;
-                            }
-                            
-                            // "yazd" veya "wrote" içeren satırları atla
-                            if (strpos($line, 'yazd') !== false || strpos($line, 'wrote') !== false) {
-                                break;
-                            }
-                            
-                            // "On " ile başlayan reply formatını atla
-                            if (strpos($line, 'On ') === 0 && strpos($line, 'wrote:') !== false) {
-                                break;
-                            }
-                            
-                            $cleanLines[] = $line;
-                        }
-                        
-                        $body = implode(' ', $cleanLines);
-                        
-                        // Fazla boşlukları temizle
-                        $body = preg_replace('/\r\n|\r|\n/', ' ', $body);
-                        $body = preg_replace('/\s+/', ' ', $body);
-                        
-                        // UTF-8 encoding garantisi
-                        if (!mb_check_encoding($body, 'UTF-8')) {
-                            $body = mb_convert_encoding($body, 'UTF-8', 'auto');
-                        }
-                        
+                        $body = $this->getEmailBody($msgno, $structure);
+
+                        // Database transaction ile kaydet
+                        DB::beginTransaction();
+
                         try {
                             $newMessage = Message::create([
                                 'name' => $fromName,
@@ -229,36 +337,48 @@ class ImapService
                                 'subject' => $subject,
                                 'thread_id' => $threadId,
                                 'message_id' => $messageId,
-                                'message' => trim($body),
+                                'message' => $body,
                                 'source' => 'email',
                                 'message_type' => $messageType,
-                                'message_date' => Carbon::parse($header->date),
+                                'message_date' => $messageDate,
                                 'is_read' => false,
-                                'created_at' => Carbon::parse($header->date)
+                                'created_at' => $messageDate
                             ]);
-                            
+
+                            DB::commit();
+
                             $newMessages[] = $newMessage;
-                            Log::info('Yeni e-posta kaydedildi: ' . $subject);
-                            
+                            Log::info("Yeni e-posta kaydedildi: {$fromEmail} - {$subject}");
+
                         } catch (\Illuminate\Database\QueryException $e) {
-                            // Unique constraint violation - duplicate detected
-                            if (strpos($e->getMessage(), 'unique_email_message') !== false || 
-                                strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                                Log::info('Duplikasyon tespit edildi ve atlandı: ' . $subject);
-                                continue; // Bu email'i atla, devam et
+                            DB::rollBack();
+
+                            // Unique constraint violation kontrolü
+                            if (strpos($e->getMessage(), 'Duplicate entry') !== false ||
+                                strpos($e->getMessage(), 'UNIQUE constraint') !== false) {
+                                Log::info("Database duplikasyon tespit edildi: {$fromEmail} - {$subject}");
+                                $duplicateCount++;
+                                continue;
                             } else {
-                                // Başka bir database hatası - yeniden fırlat
                                 throw $e;
                             }
                         }
+
+                    } catch (\Exception $e) {
+                        Log::error("Email işleme hatası (UID: {$uid}): " . $e->getMessage());
+                        continue;
                     }
                 }
+
+                Log::info("IMAP Sync tamamlandı - İşlenen: {$processedCount}, Yeni: " . count($newMessages) . ", Duplikasyon: {$duplicateCount}");
+            } else {
+                Log::info('IMAP: Yeni email bulunamadı.');
             }
-            
+
             $this->disconnect();
-            
+
             return $newMessages;
-            
+
         } catch (\Exception $e) {
             $this->disconnect();
             Log::error('IMAP e-posta çekme hatası: ' . $e->getMessage());
@@ -278,10 +398,10 @@ class ImapService
                 'message' => 'PHP IMAP extension yüklü değil. Lütfen php-imap extension\'ını yükleyin.'
             ];
         }
-        
+
         try {
             $this->connect();
-            
+
             // Mailbox bilgilerini al
             $check = imap_check($this->connection);
             $info = [
@@ -289,20 +409,61 @@ class ImapService
                 'message' => 'IMAP bağlantısı başarılı',
                 'mailbox' => $check->Mailbox ?? '',
                 'messages' => $check->Nmsgs ?? 0,
-                'recent' => $check->Recent ?? 0
+                'recent' => $check->Recent ?? 0,
+                'host' => $this->host,
+                'username' => $this->username
             ];
-            
+
             $this->disconnect();
-            
+
             return $info;
-            
+
         } catch (\Exception $e) {
             $this->disconnect();
-            
+
             return [
                 'success' => false,
                 'message' => 'IMAP bağlantı hatası: ' . $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Belirli bir email'i işle (test amaçlı)
+     */
+    public function processSpecificEmail($uid)
+    {
+        try {
+            $this->connect();
+
+            $msgno = imap_msgno($this->connection, $uid);
+            $header = imap_headerinfo($this->connection, $msgno);
+
+            if (!$header) {
+                throw new \Exception("Email header alınamadı: UID {$uid}");
+            }
+
+            $subject = isset($header->subject) ? imap_utf8($header->subject) : 'Konu Yok';
+            $from = isset($header->from[0]) ? $header->from[0] : null;
+            $fromEmail = $from ? $from->mailbox . '@' . $from->host : 'unknown@example.com';
+
+            $messageId = $this->generateMessageId($header, $fromEmail, $subject);
+            $threadId = $this->generateThreadId($subject, $fromEmail);
+
+            $this->disconnect();
+
+            return [
+                'uid' => $uid,
+                'subject' => $subject,
+                'from' => $fromEmail,
+                'message_id' => $messageId,
+                'thread_id' => $threadId,
+                'date' => $header->date ?? 'Unknown'
+            ];
+
+        } catch (\Exception $e) {
+            $this->disconnect();
+            throw $e;
         }
     }
 }
