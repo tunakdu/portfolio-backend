@@ -152,27 +152,33 @@ jobs:
               # IMAP section'ını ekle
               cp config/mail.php config/mail.php.backup
               
-              # IMAP section'ını dosyanın sonuna ekle (]; den önce)
-              sed -i.tmp '/^];$/i\
-\
-    /*\
-    |--------------------------------------------------------------------------\
-    | IMAP Configuration for Email Sync\
-    |--------------------------------------------------------------------------\
-    |\
-    | Configuration for IMAP email synchronization service.\
-    | Used to fetch incoming emails from mail server.\
-    |\
-    */\
-\
-    '\''imap'\'' => [\
-        '\''host'\'' => env('\''IMAP_HOST'\''),\
-        '\''port'\'' => env('\''IMAP_PORT'\'', 993),\
-        '\''username'\'' => env('\''IMAP_USERNAME'\''),\
-        '\''password'\'' => env('\''IMAP_PASSWORD'\''),\
-        '\''encryption'\'' => env('\''IMAP_ENCRYPTION'\'', '\''ssl'\''),\
-    ],\
-' config/mail.php && rm config/mail.php.tmp
+              # IMAP section'ını PHP ile ekle
+              php -r "
+              \$content = file_get_contents('config/mail.php');
+              \$imap_section = \"
+    /*
+    |--------------------------------------------------------------------------
+    | IMAP Configuration for Email Sync
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for IMAP email synchronization service.
+    | Used to fetch incoming emails from mail server.
+    |
+    */
+
+    'imap' => [
+        'host' => env('IMAP_HOST'),
+        'port' => env('IMAP_PORT', 993),
+        'username' => env('IMAP_USERNAME'),
+        'password' => env('IMAP_PASSWORD'),
+        'encryption' => env('IMAP_ENCRYPTION', 'ssl'),
+    ],
+
+\";
+              \$content = str_replace('];', \$imap_section . '];', \$content);
+              file_put_contents('config/mail.php', \$content);
+              echo 'IMAP section eklendi';
+              "
               
               echo "✅ IMAP section eklendi"
             fi
