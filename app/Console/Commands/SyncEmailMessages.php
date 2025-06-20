@@ -5,71 +5,80 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\ImapService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SyncEmailMessages extends Command
 {
     /**
      * The name and signature of the console command.
-     *
-     * @var string
      */
     protected $signature = 'email:sync {--force : Force sync even if recently synced}';
 
     /**
      * The console command description.
-     *
-     * @var string
      */
-    protected $description = 'cPanel mail kutusundan yeni mesajlari ceker ve sisteme ekler';
+    protected $description = 'Synchronize emails from cPanel mailbox using IMAP';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(ImapService $imapService): int
     {
-        $this->info('E-posta mesajlari senkronize ediliyor...');
+        $this->info('Starting email synchronization...');
         
         try {
-            // Son senkronizasyon zamanını kontrol et
-            $lastSync = cache('email_last_sync');
+            // Check last sync time with modern cache facade
+            $lastSync = Cache::get('email_last_sync');
             $forceSync = $this->option('force');
             
             if (!$forceSync && $lastSync && $lastSync > now()->subMinutes(2)) {
-                $this->warn('Son senkronizasyon 2 dakikadan az bir sure once yapildi. --force kullanarak zorla senkronize edebilirsiniz.');
-                return Command::SUCCESS;
+                $this->warn('Last sync was less than 2 minutes ago. Use --force to override.');
+                return self::SUCCESS;
             }
             
-            $imapService = new ImapService();
+            $this->info('Connecting to IMAP server...');
             
-            $this->info('IMAP sunucusuna baglaniliyor...');
-            
-            // Yeni mesajlari cek
+            // Fetch new messages using dependency injection
             $newMessages = $imapService->fetchNewEmails();
             
             if (empty($newMessages)) {
-                $this->info('Yeni mesaj bulunamadi.');
+                $this->info('No new messages found.');
             } else {
-                $this->info(count($newMessages) . ' yeni mesaj sisteme eklendi:');
+                $this->info(sprintf('Successfully synchronized %d new messages:', count($newMessages)));
                 
+                $this->newLine();
                 foreach ($newMessages as $message) {
-                    $this->line('- ' . $message->name . ' (' . $message->email . ') - ' . $message->subject);
+                    $this->line(sprintf('- %s (%s) - %s', 
+                        $message->name, 
+                        $message->email, 
+                        $message->subject
+                    ));
                 }
             }
             
-            // Son senkronizasyon zamanını kaydet
-            cache(['email_last_sync' => now()], 3600);
+            // Cache last sync time with modern syntax
+            Cache::put('email_last_sync', now(), 3600);
             
-            $this->info('E-posta senkronizasyonu tamamlandi!');
+            $this->newLine();
+            $this->info('Email synchronization completed successfully!');
             
-            Log::info('E-posta senkronizasyonu basarili: ' . count($newMessages) . ' yeni mesaj');
+            Log::info('Email synchronization successful', [
+                'messages_count' => count($newMessages),
+                'timestamp' => now()->toISOString()
+            ]);
             
-            return Command::SUCCESS;
+            return self::SUCCESS;
             
-        } catch (\Exception $e) {
-            $this->error('E-posta senkronizasyon hatasi: ' . $e->getMessage());
-            Log::error('E-posta senkronizasyon hatasi: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            $this->error(sprintf('Email synchronization failed: %s', $e->getMessage()));
             
-            return Command::FAILURE;
+            Log::error('Email synchronization failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            return self::FAILURE;
         }
     }
 }
