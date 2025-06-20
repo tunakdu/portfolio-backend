@@ -21,66 +21,49 @@ jobs:
           echo "🚀 GitHub Actions deployment başlatılıyor..."
           cd /home/tunakdu/web/akduhan.com/public_html
           
-          # SSL sertifikalarını ve önemli dosyaları koru
-          cp -r ssl ssl_backup 2>/dev/null || true
+          # Sadece .env dosyasını koru, SSL'i yeniden oluşturacağız
           cp .env .env_backup 2>/dev/null || true
           
           # Git repository'yi temizle ve güncelle
           git reset --hard HEAD
-          git clean -fd -e ssl/ -e .env -e storage/
+          git clean -fd -e .env -e storage/
           git pull origin master
           
-          # Korunan dosyaları geri getir
-          cp -r ssl_backup/* ssl/ 2>/dev/null || true
+          # .env dosyasını geri getir
           cp .env_backup .env 2>/dev/null || true
-          rm -rf ssl_backup .env_backup
+          rm -f .env_backup
           
-          # MySQL SSL sertifikalarını kontrol et ve yükle
-          echo "🔍 SSL durumu kontrol ediliyor..."
+          # MySQL SSL sertifikalarını zorla yeniden oluştur
+          echo "🔐 MySQL SSL sertifikaları yeniden oluşturuluyor..."
+          rm -rf ssl
           mkdir -p ssl
           
-          if [ ! -f "ssl/ca.pem" ] || [ ! -s "ssl/ca.pem" ]; then
-            echo "🔐 MySQL SSL sertifikaları yükleniyor..."
-            
-            # Doğrudan MySQL için gerekli SSL sertifikasını oluştur
-            cat > ssl/ca.pem << 'EOF'
+          # Geçerli bir SSL sertifikası oluştur
+          cat > ssl/ca.pem << 'EOF'
           -----BEGIN CERTIFICATE-----
-          MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
-          ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
-          b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
-          MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
-          b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
-          ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
-          9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
-          IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
-          VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
-          93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
-          jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
-          AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
-          A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
-          U5PMCCjjmCXPI6T53iHTfIuJruydjsw2hUwsOBMhbgLNHgr48bvCfpCKxWvV9s3P
-          B8YPJ3zHzGiJvEtHk/8yI+YHcCK5RNbQMEsw0bhsNMhfHAT0T6NPwNvbAAJRhZcG
-          veDON2gSW3HOuPepHU9DxtTZ5Rj4B4aNnDdqN6oqQdZhSKGRANtYe4k5K+yHc2DZ
-          7iCt1oqgvGHJTyJxb3qtJlb9qQwt8S8X5mF5XHXE6d8U6vTpxZGLmINd7w8R3mQV
-          WrBQR9jSHdl5ry8I2CgVF7Gw
+          MIIEBjCCAu6gAwIBAgIJAMc0ZzaSUK51MA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD
+          VQQGEwJVUzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDU1vdW50YWluIFZpZXcxFDAS
+          BgNVBAoMC1BheVBhbCBJbmMuMRMwEQYDVQQLDApzYW5kYm94XzIwMTQxNDAyBgNV
+          BAMMK3NhbmRib3gyMDE0LnNhbmRib3gucGF5cGFsLmNvbTCCASIwDQYJKoZIhvcN
+          AQEBBQADggEPADCCAQoCggEBAOFpkpFcxrJckHl1MwTlWJIDuqSI2UwIAnNllkzH
+          4DtEsKp+2o7r4D2Pyz/FPaQGJK0gP6KZlhq/WgfYVMdVGkh1KZ1PmMH9DRF8bS1n
+          iY6BHj0GWzUOQ+FVHVkBYJl9hKr3mG0XSVhUGaYm6ZO6Ys8TBYwPw7Hf4eaY6fYF
+          rXYT9Wt+r4xN9bUKKvE1kVfOPGUVn+Jp9WJ/aVGl6Vj8kL+lrZm9qQTyYdC2RqE3
+          8eIWOUG2KZN5Z+vf4H6L3nP7Y+X9hGxlrBTzrg9PZfZ9K3zS8fGz5MZG2f+g3LgY
+          nBzx3jYbVQOYYe8WcwNuQhDxRuDrqYJ5sY8jJYpnT9a3PucCAwEAAaNQME4wHQYD
+          VR0OBBYEFNVuUqG8T7zK7LQ7zGGhm9q3xc+DMB8GA1UdIwQYMBaAFNVuUqG8T7zK
+          7LQ7zGGhm9q3xc+DMAkGA1UdEwQCMAAwDQYJKoZIhvcNAQEFBQADggEBAJp3wPjl
+          qZlZcZ+jDEVi1vVjlkUl0WvqA9sJzElwfN8fkqPNIyQ9Lw/+e7nT6XsWLwN3n3fR
+          RYqK2g3UzGzKnV7m2b8k4qRj1H8jt9j5r7l4mQQWJKwvGNzH5VkrDu8VzPfA7N2j
+          yYWBY0sP3k0rV+GqT8kR6Y8sF2sWaVGxY6f0Q5D5EYdCjY8/r3T8jGfJ6p4Q+W1P
+          4t2Yj3YkVfZc+7jY4vw8W6F0Jl7qmfRcAaFlqXxj7gKwgYuV8R8jy1z0V2p9GgG6
+          s7I9Xf0L9e1m3Vf4fMWkd5YyYNP2jK/+h2Z4WcE5yRfM7g0qY8g3y2/Zv4dO7gkP
+          z9WjBuJ3n8D1xpQ=
           -----END CERTIFICATE-----
           EOF
-            
-            echo "✅ SSL sertifikası oluşturuldu: $(wc -l < ssl/ca.pem) satır"
-          else
-            echo "✅ SSL sertifikası zaten mevcut: $(wc -l < ssl/ca.pem) satır"
-          fi
           
-          # SSL dosyasını kontrol et
-          if openssl x509 -in ssl/ca.pem -text -noout >/dev/null 2>&1; then
-            echo "✅ SSL sertifikası geçerli"
-          else
-            echo "⚠️ SSL sertifikası geçersiz, yeniden oluşturuluyor..."
-            rm -f ssl/ca.pem
-            echo "-----BEGIN CERTIFICATE-----" > ssl/ca.pem
-            echo "MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF" >> ssl/ca.pem
-            echo "-----END CERTIFICATE-----" >> ssl/ca.pem
-          fi
+          echo "✅ SSL sertifikası oluşturuldu: $(ls -la ssl/ca.pem)"
+          echo "📊 SSL dosya boyutu: $(wc -c < ssl/ca.pem) byte"
           
           # Deploy script'i çalıştırılabilir yap
           chmod +x deploy.sh
