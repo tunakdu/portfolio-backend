@@ -223,7 +223,12 @@ const filteredMessages = computed(() => {
     }
   }
 
-  return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  return filtered.sort((a, b) => {
+    // Önce message_date'e göre sırala, yoksa created_at kullan
+    const dateA = new Date(a.message_date || a.created_at)
+    const dateB = new Date(b.message_date || b.created_at)
+    return dateB - dateA // En yeni önce
+  })
 })
 
 // Methods

@@ -17,7 +17,9 @@ class MessageController extends Controller
      */
     public function index()
     {
-        $messages = Message::orderBy('created_at', 'desc')->get();
+        $messages = Message::orderBy('message_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
         
         return response()->json([
             'data' => $messages
@@ -48,6 +50,8 @@ class MessageController extends Controller
             'message' => $request->message,
             'subject' => 'Web Sitesi İletişim Formu',
             'source' => 'contact_form',
+            'message_date' => now(),
+            'message_type' => 'incoming',
         ]);
 
         // Mail gönder
