@@ -23,6 +23,12 @@ class TrackVisitors
             return $next($request);
         }
 
+        // Skip tracking for admin IP addresses
+        $clientIp = $this->getClientIp($request);
+        if ($this->isAdminIp($clientIp)) {
+            return $next($request);
+        }
+
         try {
             $this->trackVisitor($request);
         } catch (\Exception $e) {
@@ -98,6 +104,26 @@ class TrackVisitors
         }
 
         return $request->ip();
+    }
+
+    private function isAdminIp($ip)
+    {
+        // Admin IP addresses - these visitors won't be tracked
+        $adminIps = [
+            '127.0.0.1',        // localhost
+            '::1',              // localhost IPv6
+            // Add your specific admin IP addresses here
+            // You can get your current IP from: https://whatismyipaddress.com/
+            // Example: '192.168.1.100', '203.0.113.1'
+        ];
+        
+        // You can also add environment variable support
+        if ($envAdminIps = env('ADMIN_IPS')) {
+            $envIps = explode(',', $envAdminIps);
+            $adminIps = array_merge($adminIps, array_map('trim', $envIps));
+        }
+        
+        return in_array($ip, $adminIps);
     }
 
     private function isBot($userAgent)

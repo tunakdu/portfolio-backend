@@ -23,6 +23,10 @@ Route::get('/personal-info/public', [PersonalInfoController::class, 'public']);
 Route::get('/personal-info/category/{category}', [PersonalInfoController::class, 'getByCategory']);
 Route::get('/personal-info/key/{key}', [PersonalInfoController::class, 'getByKey']);
 
+// CV Public Routes
+Route::get('/experiences', [App\Http\Controllers\Api\ExperienceController::class, 'index']);
+Route::get('/education', [App\Http\Controllers\Api\EducationController::class, 'index']);
+
 // Kimlik Doğrulama Rotaları (Authentication Routes)
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -39,6 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/articles/{article:slug}', [ArticleController::class, 'update']);
     Route::delete('/articles/{article:slug}', [ArticleController::class, 'destroy']);
     Route::post('/articles/upload-cover', [ArticleController::class, 'uploadCoverImage']);
+    
+    // File Upload Routes
+    Route::post('/upload', [App\Http\Controllers\Api\UploadController::class, 'upload']);
+    Route::delete('/upload', [App\Http\Controllers\Api\UploadController::class, 'delete']);
     
     // Medium Import Routes
     Route::post('/articles/import-medium', [ArticleController::class, 'importMedium']);
@@ -65,6 +73,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/referrers', [AnalyticsController::class, 'referrers']);
         Route::get('/recent-activity', [AnalyticsController::class, 'recentActivity']);
     });
+
+    // CV Management Routes
+    Route::apiResource('experiences', App\Http\Controllers\Api\ExperienceController::class);
+    Route::apiResource('education', App\Http\Controllers\Api\EducationController::class);
 });
 
 // Bu rota /auth/me ile aynı işi görüyor, gelecekte birleştirilebilir.

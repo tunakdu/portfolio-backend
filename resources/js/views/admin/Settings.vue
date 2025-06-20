@@ -256,29 +256,6 @@
                       />
                     </div>
 
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <Twitter class="w-4 h-4 inline mr-1" />
-                        Twitter
-                      </label>
-                      <input
-                        v-model="formData.twitter"
-                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
-                        placeholder="https://twitter.com/username"
-                      />
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <Instagram class="w-4 h-4 inline mr-1" />
-                        Instagram
-                      </label>
-                      <input
-                        v-model="formData.instagram"
-                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
-                        placeholder="https://instagram.com/username"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -375,66 +352,97 @@
                   <Upload class="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 class="text-lg font-medium text-gray-900 mb-2">CV Dosyası Yükle</h3>
                   <p class="text-gray-500 mb-4">PDF formatında CV dosyanızı yükleyin</p>
-                  <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700 mb-2">
-                    Dosya Seç
-                  </button>
+                  
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    @change="handleCvUpload"
+                    :disabled="isCvUploading"
+                    class="hidden"
+                    id="cv-file-upload"
+                  />
+                  
+                  <label
+                    for="cv-file-upload"
+                    :class="`inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer mb-2 ${
+                      isCvUploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`"
+                  >
+                    <div v-if="isCvUploading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <Upload v-else class="w-4 h-4 mr-2" />
+                    {{ isCvUploading ? 'Yükleniyor...' : 'Dosya Seç' }}
+                  </label>
+                  
                   <p class="text-xs text-gray-500">Maksimum 5MB, PDF formatı</p>
                 </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Profil Fotoğrafı
-                  </label>
-                  
-                  <!-- Current Image Display -->
-                  <div v-if="formData.profileImage" class="mb-4">
-                    <img 
-                      :src="formData.profileImage" 
-                      alt="Current profile" 
-                      class="w-32 h-32 object-cover rounded-full border-4 border-gray-200"
-                    />
-                  </div>
-                  
-                  <!-- Upload Area -->
-                  <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                    <Upload class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Profil Fotoğrafı Yükle</h3>
-                    <p class="text-gray-500 mb-4">JPG, PNG veya WebP formatında fotoğraf yükleyin</p>
-                    
-                    <input
-                      type="file"
-                      accept="image/*"
-                      @change="handleImageUpload"
-                      :disabled="isUploading"
-                      class="hidden"
-                      id="profile-image-upload"
-                    />
-                    
-                    <label
-                      for="profile-image-upload"
-                      :class="`inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer ${
-                        isUploading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`"
-                    >
-                      <div v-if="isUploading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      <Upload v-else class="w-4 h-4 mr-2" />
-                      {{ isUploading ? 'Yükleniyor...' : 'Fotoğraf Seç' }}
-                    </label>
-                    
-                    <p class="text-xs text-gray-500 mt-2">Maksimum 5MB</p>
-                  </div>
-                  
-                  <!-- Manual URL Input -->
-                  <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Veya URL ile ekle
-                    </label>
-                    <input
-                      v-model="formData.profileImage"
-                      class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
-                      placeholder="https://example.com/profile.jpg"
-                    />
-                  </div>
+              </div>
+            </div>
+
+            <!-- CV Management Tab -->
+            <div v-if="activeTab === 'cv'" class="modern-card p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">CV Yönetimi</h2>
+                <div class="flex space-x-2">
+                  <button
+                    @click="router.push('/admin/cv/experience')"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    İş Deneyimi
+                  </button>
+                  <button
+                    @click="router.push('/admin/cv/education')"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    Eğitim
+                  </button>
+                  <button
+                    @click="router.push('/admin/skills')"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    Yetenekler
+                  </button>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <h3 class="font-semibold text-blue-900 mb-2">İş Deneyimi</h3>
+                  <p class="text-blue-700 text-sm mb-3">
+                    Şirketler, pozisyonlar ve teknolojileri yönetin.
+                  </p>
+                  <button
+                    @click="router.push('/admin/cv/experience')"
+                    class="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                  >
+                    Yönet →
+                  </button>
+                </div>
+                
+                <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <h3 class="font-semibold text-purple-900 mb-2">Eğitim</h3>
+                  <p class="text-purple-700 text-sm mb-3">
+                    Mezun olduğunuz okulları ve dereceleri yönetin.
+                  </p>
+                  <button
+                    @click="router.push('/admin/cv/education')"
+                    class="text-purple-600 hover:text-purple-800 font-medium text-sm"
+                  >
+                    Yönet →
+                  </button>
+                </div>
+
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <h3 class="font-semibold text-green-900 mb-2">Yetenekler</h3>
+                  <p class="text-green-700 text-sm mb-3">
+                    Teknik yeteneklerinizi ve seviyelerinizi yönetin.
+                  </p>
+                  <button
+                    @click="router.push('/admin/skills')"
+                    class="text-green-600 hover:text-green-800 font-medium text-sm"
+                  >
+                    Yönet →
+                  </button>
                 </div>
               </div>
             </div>
@@ -460,7 +468,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Save, Upload, User, Globe, FileText, Mail, Phone, MapPin, Github, Linkedin, Twitter, Instagram } from 'lucide-vue-next';
+import { Save, Upload, User, Globe, FileText, Mail, Phone, MapPin, Github, Linkedin, Briefcase } from 'lucide-vue-next';
 import { useAuth } from '../../composables/useAuth.js';
 import { usePersonalInfo } from '../../composables/usePersonalInfo.js';
 import Swal from 'sweetalert2';
@@ -473,13 +481,15 @@ const { fetchPersonalInfo, updatePersonalInfo, personalInfo, isLoading: personal
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isUploading = ref(false);
+const isCvUploading = ref(false);
 const activeTab = ref('personal');
 
 const tabs = [
   { id: 'personal', label: 'Kişisel Bilgiler', icon: User },
   { id: 'site', label: 'Site Ayarları', icon: Globe },
   { id: 'contact', label: 'İletişim', icon: Mail },
-  { id: 'files', label: 'Dosyalar', icon: FileText }
+  { id: 'files', label: 'Dosyalar', icon: FileText },
+  { id: 'cv', label: 'CV Yönetimi', icon: Briefcase }
 ];
 
 const formData = ref({
@@ -499,15 +509,12 @@ const formData = ref({
   cvButtonText: 'CV İndir',
   github: 'https://github.com/tunahanakduhan',
   linkedin: 'https://linkedin.com/in/tunahanakduhan',
-  twitter: '',
-  instagram: '',
   siteTitle: 'Tunahan Akduhan - Backend & API Developer',
   siteDescription: 'Backend sistemler ve API geliştirme konusunda uzmanlaşmış yazılım geliştirici. Laravel, Node.js ve modern web teknolojileri ile güvenli ve ölçeklenebilir çözümler.',
   keywords: 'backend developer, api development, laravel, node.js, restful api, database optimization, sql, php, javascript',
   contactEmail: 'akduhant@gmail.com',
   contactPhone: '',
-  resumeUrl: '',
-  profileImage: ''
+  resumeUrl: ''
 });
 
 const loadSettings = async () => {
@@ -527,13 +534,10 @@ const loadSettings = async () => {
         bio: personalInfo.value.bio || formData.value.bio,
         github: personalInfo.value.github_url || formData.value.github,
         linkedin: personalInfo.value.linkedin_url || formData.value.linkedin,
-        twitter: personalInfo.value.twitter_url || formData.value.twitter,
-        instagram: personalInfo.value.instagram_url || formData.value.instagram,
         siteTitle: personalInfo.value.site_title || formData.value.siteTitle,
         siteDescription: personalInfo.value.site_description || formData.value.siteDescription,
         keywords: personalInfo.value.site_keywords || formData.value.keywords,
-        resumeUrl: personalInfo.value.cv_url || formData.value.resumeUrl,
-        profileImage: personalInfo.value.profile_image || formData.value.profileImage
+        resumeUrl: personalInfo.value.cv_url || formData.value.resumeUrl
       };
     }
   } catch (error) {
@@ -556,13 +560,10 @@ const handleSubmit = async () => {
       { key: 'bio', value: formData.value.bio, type: 'text', category: 'about' },
       { key: 'github_url', value: formData.value.github, type: 'url', category: 'social' },
       { key: 'linkedin_url', value: formData.value.linkedin, type: 'url', category: 'social' },
-      { key: 'twitter_url', value: formData.value.twitter, type: 'url', category: 'social' },
-      { key: 'instagram_url', value: formData.value.instagram, type: 'url', category: 'social' },
       { key: 'site_title', value: formData.value.siteTitle, type: 'text', category: 'site' },
       { key: 'site_description', value: formData.value.siteDescription, type: 'text', category: 'site' },
       { key: 'site_keywords', value: formData.value.keywords, type: 'text', category: 'site' },
-      { key: 'cv_url', value: formData.value.resumeUrl, type: 'url', category: 'files' },
-      { key: 'profile_image', value: formData.value.profileImage, type: 'url', category: 'files' }
+      { key: 'cv_url', value: formData.value.resumeUrl, type: 'url', category: 'files' }
     ];
 
     // Boş değerleri filtrele
@@ -593,41 +594,68 @@ const handleSubmit = async () => {
   }
 };
 
-const handleImageUpload = async (event) => {
+const handleCvUpload = async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  isUploading.value = true;
+  // Dosya boyutu kontrolü (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Dosya Çok Büyük!',
+      text: 'CV dosyası maksimum 5MB olabilir.',
+    });
+    return;
+  }
+
+  // Dosya tipi kontrolü
+  if (file.type !== 'application/pdf') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Geçersiz Dosya Tipi!',
+      text: 'Sadece PDF dosyaları kabul edilir.',
+    });
+    return;
+  }
+
+  isCvUploading.value = true;
   try {
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);
-    formDataUpload.append('type', 'profile');
+    formDataUpload.append('type', 'cv');
 
-    const response = await axios.post('/api/upload', formDataUpload);
+    const response = await axios.post('/api/upload', formDataUpload, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     
     if (response.data.url) {
-      formData.value.profileImage = response.data.url;
+      formData.value.resumeUrl = response.data.url;
       
       Swal.fire({
         toast: true,
         position: 'top-end',
         icon: 'success',
-        title: 'Profil fotoğrafı başarıyla yüklendi!',
+        title: 'CV başarıyla yüklendi!',
         showConfirmButton: false,
         timer: 3000,
       });
     }
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('CV upload error:', error);
     Swal.fire({
       icon: 'error',
       title: 'Hata!',
-      text: 'Fotoğraf yüklenirken hata oluştu!',
+      text: 'CV yüklenirken hata oluştu!',
     });
   } finally {
-    isUploading.value = false;
+    isCvUploading.value = false;
+    // Input'u temizle
+    event.target.value = '';
   }
 };
+
 
 onMounted(async () => {
   await checkAuth();

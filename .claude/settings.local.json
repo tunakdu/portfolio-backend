@@ -19,7 +19,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(true)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

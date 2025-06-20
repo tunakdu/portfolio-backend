@@ -208,29 +208,6 @@
         </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="grid grid-cols-1 gap-6">
-        <div>
-          <div class="modern-card p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <Zap class="w-5 h-5 mr-2" />
-              Hızlı Eylemler
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <button
-                v-for="action in quickActions"
-                :key="action.title"
-                :class="`${action.color} text-white p-4 rounded-xl text-left transition-all duration-200 transform hover:scale-105`"
-                @click="handleQuickAction(action.href)"
-              >
-                <component :is="action.icon" class="w-6 h-6 mb-2" />
-                <h4 class="font-semibold text-sm mb-1">{{ action.title }}</h4>
-                <p class="text-xs text-white/80">{{ action.description }}</p>
-              </button>
-            </div>
-          </div>
-        </div>
-        </div>
       </div>
     </main>
   </div>
@@ -241,17 +218,11 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Users,
-  FileText,
-  Settings,
-  Plus,
-  MessageSquare,
-  TrendingUp,
   Eye,
   LogOut,
   Activity,
   BarChart3,
-  PieChart,
-  Zap
+  PieChart
 } from 'lucide-vue-next';
 import { useAuth } from '../../composables/useAuth.js';
 import axios from 'axios';
@@ -269,43 +240,6 @@ const visitorsChart = ref([]);
 const topPages = ref([]);
 const recentActivity = ref([]);
 
-const quickActions = [
-  {
-    title: "Yeni Proje",
-    description: "Proje ekleyin",
-    icon: Plus,
-    href: "/admin/projects/new",
-    color: "bg-blue-600 hover:bg-blue-700",
-  },
-  {
-    title: "Mesajlar",
-    description: "Mesajları görün",
-    icon: MessageSquare,
-    href: "/admin/messages",
-    color: "bg-green-600 hover:bg-green-700",
-  },
-  {
-    title: "Makaleler",
-    description: "Blog yönetimi",
-    icon: FileText,
-    href: "/admin/articles",
-    color: "bg-purple-600 hover:bg-purple-700",
-  },
-  {
-    title: "Projeler",
-    description: "Proje listesi",
-    icon: TrendingUp,
-    href: "/admin/projects",
-    color: "bg-orange-600 hover:bg-orange-700",
-  },
-  {
-    title: "Ayarlar",
-    description: "Site ayarları",
-    icon: Settings,
-    href: "/admin/settings",
-    color: "bg-indigo-600 hover:bg-indigo-700",
-  },
-];
 
 // Methods
 const loadAnalytics = async () => {
@@ -370,9 +304,6 @@ const handleLogout = async () => {
   }
 };
 
-const handleQuickAction = (href) => {
-  router.push(href);
-};
 
 onMounted(async () => {
   loading.value = true;

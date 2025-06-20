@@ -13,6 +13,8 @@ import AdminSkills from '../views/admin/Skills.vue';
 import AdminArticles from '../views/admin/Articles.vue';
 import ArticleForm from '../views/admin/ArticleForm.vue';
 import ArticleImport from '../views/admin/ArticleImport.vue';
+import AdminExperience from '../views/admin/Experience.vue';
+import AdminEducation from '../views/admin/Education.vue';
 import BlogList from '../views/Blog.vue';
 import BlogDetail from '../views/BlogDetail.vue';
 import { useAuth } from '../composables/useAuth';
@@ -114,6 +116,18 @@ const routes = [
         path: '/admin/skills',
         name: 'AdminSkills',
         component: AdminSkills,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/cv/experience',
+        name: 'AdminExperience',
+        component: AdminExperience,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/cv/education',
+        name: 'AdminEducation',
+        component: AdminEducation,
         meta: { requiresAuth: true },
     },
 ];

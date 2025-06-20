@@ -6,6 +6,8 @@
       </transition>
     </router-view>
     <Dock />
+    <!-- Dock için bottom padding -->
+    <div class="h-20"></div>
   </div>
 </template>
 
