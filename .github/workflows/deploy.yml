@@ -1,26 +1,78 @@
-name: Deploy to Production (DISABLED)
-
-# Deployment workflow disabled - use manual deployment instead
-# The server has a custom deployment script that overwrites .env file
+name: Deploy to Production
 
 on:
-  workflow_dispatch: # Only run manually
-  # push:
-  #   branches: [ master ]
+  push:
+    branches: [ master ]
 
 jobs:
   deploy:
     name: Deploy to server
     runs-on: ubuntu-latest
-    if: false # Disable automatic deployment
 
     steps:
-    - name: Deployment Disabled
-      run: |
-        echo "⚠️ Automatic deployment is disabled"
-        echo "The server uses a custom deployment script that:"
-        echo "- Deletes all files including .env"
-        echo "- Recreates .env from .env.example" 
-        echo "- Overwrites production database settings"
-        echo ""
-        echo "Please deploy manually on the server to preserve .env settings"
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          cd /home/tunakdu/web/akduhan.com/public_html
+          
+          # Backup current .env file if exists
+          BACKUP_FILE=""
+          if [ -f ".env" ]; then
+            BACKUP_FILE=".env.backup.$(date +%Y%m%d_%H%M%S)"
+            cp .env "$BACKUP_FILE"
+            echo "✅ .env file backed up as $BACKUP_FILE"
+          fi
+          
+          # Clone or pull latest changes
+          if [ ! -d ".git" ]; then
+            echo "Initializing repository..."
+            # Only remove files but preserve .env backup
+            find . -maxdepth 1 ! -name '.env*' ! -name '.' ! -name '..' -exec rm -rf {} +
+            git clone https://github.com/tunakdu/portfolio-backend.git .
+          else
+            echo "Pulling latest changes..."
+            git pull origin master
+          fi
+          
+          # Restore .env file if backup exists
+          if [ ! -z "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+            cp "$BACKUP_FILE" .env
+            echo "✅ .env file restored from backup"
+          elif [ ! -f ".env" ]; then
+            echo "⚠️ No .env file found, you may need to create one manually"
+          fi
+          
+          # Install/Update Composer dependencies
+          composer install --no-dev --optimize-autoloader
+          
+          # Install/Update NPM dependencies and build assets
+          npm install
+          npm run build
+          
+          # Clear caches
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan view:clear
+          php artisan route:clear
+          
+          # Run database migrations
+          php artisan migrate --force
+          
+          # Create storage symlink if not exists
+          php artisan storage:link
+          
+          # Set proper permissions
+          chmod -R 775 storage/
+          chmod -R 775 bootstrap/cache/
+          
+          # Cache optimizations for production
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          
+          echo "🚀 Deployment completed successfully!"
