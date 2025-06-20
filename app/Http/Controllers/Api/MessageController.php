@@ -17,9 +17,14 @@ class MessageController extends Controller
      */
     public function index()
     {
-        $messages = Message::orderBy('message_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $messages = Message::orderByRaw('
+            CASE 
+                WHEN message_date IS NOT NULL THEN message_date 
+                ELSE created_at 
+            END DESC
+        ')
+        ->orderBy('id', 'desc') // Eşit tarihler için ID ile sırala
+        ->get();
         
         return response()->json([
             'data' => $messages

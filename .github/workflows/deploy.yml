@@ -20,21 +20,28 @@ jobs:
         script: |
           cd /home/tunakdu/web/akduhan.com/public_html
 
-          # Supervisor worker'larını durdur (deployment sırasında)
-          echo "🔄 Supervisor worker'ları durduruluyor..."
+          echo "🔄 Deployment başlatılıyor..."
+
+          # Supervisor worker'larını zarif bir şekilde durdur
+          echo "⏸️  Supervisor worker'ları durduruluyor..."
           sudo supervisorctl stop laravel-worker:* || true
+          sudo supervisorctl stop laravel-scheduler || true
 
           # Git pull latest changes (sadece kodu güncelle)
+          echo "📥 Kod güncellemeleri alınıyor..."
           git pull origin master
 
           # Install/Update Composer dependencies (production optimized)
+          echo "📦 Composer dependencies güncelleniyor..."
           composer install --no-dev --optimize-autoloader --no-interaction
 
           # Install/Update NPM dependencies and build assets
+          echo "🏗️  Assets build ediliyor..."
           npm install --production
           npm run build
 
           # MySQL SSL dosyalarını koru/kopyala (her deploy sonrası)
+          echo "🔐 SSL dosyaları kontrol ediliyor..."
           mkdir -p ssl/
           if [ ! -f ssl/ca.pem ]; then
             cp /etc/mysql/ssl/ca.pem ssl/ 2>/dev/null || echo "SSL dosyası bulunamadı: ca.pem"
@@ -53,27 +60,68 @@ jobs:
             chown -R www-data:www-data ssl/ 2>/dev/null || true
           fi
 
-          # Clear application caches
-          php artisan config:clear
-          php artisan cache:clear
-          php artisan view:clear
-          php artisan route:clear
+          # Laravel cache'lerini temizle (ÖNCE TEMİZLE)
+          echo "🧹 Cache temizleniyor..."
+          php artisan config:clear || true
+          php artisan cache:clear || true
+          php artisan view:clear || true
+          php artisan route:clear || true
+          php artisan queue:clear || true
 
           # Run database migrations
+          echo "🗄️  Database migration'ları çalıştırılıyor..."
           php artisan migrate --force
 
-          # Cache optimizations for production
+          # Storage ve bootstrap dizinlerine yazma izni ver
+          echo "📁 Dosya izinleri ayarlanıyor..."
+          sudo chown -R tunakdu:www-data storage bootstrap/cache
+          sudo chmod -R 775 storage bootstrap/cache
+
+          # Production için cache optimizasyonları (SONRA CACHE'LE)
+          echo "⚡ Production cache oluşturuluyor..."
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
 
-          # Supervisor worker'larını yeniden başlat
-          echo "🚀 Supervisor worker'ları yeniden başlatılıyor..."
+          # Supervisor konfigürasyonlarını yeniden yükle
+          echo "🔄 Supervisor konfigürasyonları güncelleniyor..."
           sudo supervisorctl reread
           sudo supervisorctl update
-          sudo supervisorctl start laravel-worker:*
 
-          # Worker durumunu kontrol et
+          # Queue worker'larını yeniden başlat
+          echo "🚀 Supervisor worker'ları başlatılıyor..."
+          sudo supervisorctl start laravel-worker:*
+          sudo supervisorctl start laravel-scheduler
+
+          # Worker durumlarını kontrol et
+          echo "✅ Worker durumları kontrol ediliyor..."
           sudo supervisorctl status
 
-          echo "🚀 Deployment completed successfully!"
+          # Queue restart ile mevcut worker'ları zarif şekilde yeniden başlat
+          echo "🔄 Queue worker'ları yenileniyor..."
+          php artisan queue:restart
+
+          # IMAP bağlantısını test et
+          echo "📧 IMAP bağlantısı test ediliyor..."
+          php artisan tinker --execute="
+          try {
+              \$imap = new App\\Services\\ImapService();
+              \$result = \$imap->testConnection();
+              echo \$result['success'] ? '✅ IMAP bağlantısı başarılı' : '❌ IMAP hatası: ' . \$result['message'];
+              echo \"\n\";
+          } catch (Exception \$e) {
+              echo '❌ IMAP test hatası: ' . \$e->getMessage() . \"\n\";
+          }
+          "
+
+          # Son durum raporu
+          echo ""
+          echo "📊 DEPLOYMENT RAPORU:"
+          echo "===================="
+          echo "📧 IMAP Host: $(grep IMAP_HOST .env | cut -d '=' -f2)"
+          echo "👤 IMAP User: $(grep IMAP_USERNAME .env | cut -d '=' -f2)"
+          echo "🔧 Supervisor Status:"
+          sudo supervisorctl status | grep laravel
+          echo "===================="
+
+          echo "🚀 Deployment başarıyla tamamlandı!"

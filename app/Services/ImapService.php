@@ -100,42 +100,54 @@ class ImapService
                     // Message type belirle (tunahan@akduhan.com'dan geliyorsa outgoing)
                     $messageType = ($fromEmail === 'tunahan@akduhan.com') ? 'outgoing' : 'incoming';
                     
-                    // Çoklu duplikasyon kontrolü
+                    // 🧵 Güçlendirilmiş Çoklu Duplikasyon Kontrolü
                     $existingMessage = null;
+                    $messageDate = Carbon::parse($header->date);
                     
                     // 1. Message-ID ile kontrol (en güvenilir)
                     if ($messageId) {
                         $existingMessage = Message::where('message_id', $messageId)->first();
+                        if ($existingMessage) {
+                            Log::info("Duplikasyon tespit edildi (Message-ID): {$subject}");
+                        }
                     }
                     
-                    // 2. Message-ID yoksa veya bulunamazsa, subject + email + tarih ile kontrol
+                    // 2. Thread ID ile kontrol - Aynı thread'de aynı tarihte mesaj var mı?
                     if (!$existingMessage) {
-                        $messageDate = Carbon::parse($header->date);
+                        $existingMessage = Message::where('thread_id', $threadId)
+                            ->where('email', $fromEmail)
+                            ->where('message_date', '>=', $messageDate->copy()->subMinutes(1))
+                            ->where('message_date', '<=', $messageDate->copy()->addMinutes(1))
+                            ->first();
+                        if ($existingMessage) {
+                            Log::info("Duplikasyon tespit edildi (Thread-ID + Date): {$subject}");
+                        }
+                    }
+                    
+                    // 3. Subject + Email + Date ile kesin kontrol
+                    if (!$existingMessage) {
                         $existingMessage = Message::where('email', $fromEmail)
                             ->where('subject', $subject)
                             ->where('message_date', '>=', $messageDate->copy()->subMinutes(2))
                             ->where('message_date', '<=', $messageDate->copy()->addMinutes(2))
                             ->first();
+                        if ($existingMessage) {
+                            Log::info("Duplikasyon tespit edildi (Subject + Email + Date): {$subject}");
+                        }
                     }
                     
-                    // 3. Son çare: exact match (email + subject + body hash)
+                    // 4. Exact match - Subject hash ve body preview ile
                     if (!$existingMessage) {
-                        // Body'yi almak için geçici olarak çek
-                        $tempBody = '';
-                        $structure = imap_fetchstructure($this->connection, $msgno);
-                        if ($structure->type == 1) {
-                            $tempBody = imap_fetchbody($this->connection, $msgno, '1.1');
-                        } else {
-                            $tempBody = imap_fetchbody($this->connection, $msgno, 1);
-                        }
-                        
-                        $bodyHash = md5(trim(strip_tags($tempBody)));
-                        $subjectHash = md5(trim($subject));
+                        $subjectNormalized = preg_replace('/^(Re:|RE:|Fwd:|FWD:)\s*/i', '', trim($subject));
+                        $subjectHash = md5(strtolower($subjectNormalized));
                         
                         $existingMessage = Message::where('email', $fromEmail)
-                            ->whereRaw('MD5(TRIM(subject)) = ?', [$subjectHash])
-                            ->whereRaw('MD5(TRIM(REGEXP_REPLACE(message, "<[^>]*>", ""))) = ?', [$bodyHash])
+                            ->whereRaw('MD5(LOWER(TRIM(REGEXP_REPLACE(subject, "^(Re:|RE:|Fwd:|FWD:)[[:space:]]*", "")))) = ?', [$subjectHash])
+                            ->where('created_at', '>=', $messageDate->copy()->subHours(24))
                             ->first();
+                        if ($existingMessage) {
+                            Log::info("Duplikasyon tespit edildi (Subject Hash): {$subject}");
+                        }
                     }
                     
                     if (!$existingMessage) {

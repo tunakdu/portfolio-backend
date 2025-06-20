@@ -99,7 +99,22 @@
                       </div>
                       <p class="text-xs text-gray-500 mb-1">{{ message.email }}</p>
                       <p class="text-sm text-gray-600 truncate">{{ message.subject }}</p>
-                      <p class="text-xs text-gray-400 mt-1">{{ formatDate(message.created_at) }}</p>
+                      <div class="flex items-center justify-between mt-1">
+                        <p class="text-xs text-gray-400">
+                          {{ formatDate(message.message_date || message.created_at) }}
+                        </p>
+                        <div class="flex items-center space-x-1">
+                          <span v-if="message.message_type === 'outgoing'" class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                            Giden
+                          </span>
+                          <span v-else-if="message.source === 'email'" class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                            Email
+                          </span>
+                          <span v-else class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">
+                            Form
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -134,7 +149,20 @@
                     </div>
                     <div class="flex items-center space-x-2">
                       <Clock class="w-4 h-4" />
-                      <span>{{ formatDate(selectedMessage.created_at) }}</span>
+                      <span>{{ formatDate(selectedMessage.message_date || selectedMessage.created_at) }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span :class="[
+                        'px-2 py-1 rounded text-xs font-medium',
+                        selectedMessage.message_type === 'outgoing' 
+                          ? 'bg-green-100 text-green-700' 
+                          : selectedMessage.source === 'email'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                      ]">
+                        {{ selectedMessage.message_type === 'outgoing' ? 'Giden' : 
+                           selectedMessage.source === 'email' ? 'Email' : 'Form' }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -224,10 +252,24 @@ const filteredMessages = computed(() => {
   }
 
   return filtered.sort((a, b) => {
-    // Önce message_date'e göre sırala, yoksa created_at kullan
-    const dateA = new Date(a.message_date || a.created_at)
-    const dateB = new Date(b.message_date || b.created_at)
-    return dateB - dateA // En yeni önce
+    // 📅 Akıllı tarih sıralaması: message_date öncelik, fallback created_at
+    const getEffectiveDate = (msg) => {
+      // message_date varsa ve geçerli bir tarihse onu kullan
+      if (msg.message_date && msg.message_date !== null) {
+        const msgDate = new Date(msg.message_date);
+        if (!isNaN(msgDate.getTime())) {
+          return msgDate;
+        }
+      }
+      // Fallback: created_at
+      return new Date(msg.created_at);
+    };
+    
+    const dateA = getEffectiveDate(a);
+    const dateB = getEffectiveDate(b);
+    
+    // En yeni mesaj en üstte (DESC)
+    return dateB - dateA;
   })
 })
 
