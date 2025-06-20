@@ -30,6 +30,25 @@ jobs:
           npm install --production
           npm run build
 
+          # MySQL SSL dosyalarını koru/kopyala (her deploy sonrası)
+          mkdir -p ssl/
+          if [ ! -f ssl/ca.pem ]; then
+            cp /etc/mysql/ssl/ca.pem ssl/ 2>/dev/null || echo "SSL dosyası bulunamadı: ca.pem"
+          fi
+          if [ ! -f ssl/server-cert.pem ]; then
+            cp /etc/mysql/ssl/server-cert.pem ssl/ 2>/dev/null || echo "SSL dosyası bulunamadı: server-cert.pem"
+          fi
+          if [ ! -f ssl/server-key.pem ]; then
+            cp /etc/mysql/ssl/server-key.pem ssl/ 2>/dev/null || echo "SSL dosyası bulunamadı: server-key.pem"
+          fi
+          
+          # SSL dosya izinlerini ayarla
+          if [ -d ssl/ ]; then
+            chmod 644 ssl/*.pem 2>/dev/null || true
+            chmod 755 ssl/
+            chown -R www-data:www-data ssl/ 2>/dev/null || true
+          fi
+
           # Clear application caches
           php artisan config:clear
           php artisan cache:clear

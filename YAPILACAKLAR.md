@@ -1,7 +1,7 @@
 # Yapılacaklar Listesi
 
 ## Acil
-- [ ] Deployment test - VPS secrets kullanımı test edilecek 
+- [ ] Deployment test - VPS secrets ve MySQL SSL dosya koruması test edilecek 
 
 ## Önemli
 - [ ] 
