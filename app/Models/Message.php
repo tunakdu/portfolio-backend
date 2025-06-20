@@ -11,6 +11,7 @@ class Message extends Model
         'email',
         'subject',
         'thread_id',
+        'message_id',
         'message',
         'source',
         'message_type',

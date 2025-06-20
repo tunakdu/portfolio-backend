@@ -91,18 +91,29 @@ class ImapService
                     $fromEmail = $from ? $from->mailbox . '@' . $from->host : 'bilinmiyor@example.com';
                     $fromName = isset($from->personal) ? imap_utf8($from->personal) : $fromEmail;
                     
+                    // Benzersiz Message-ID al
+                    $messageId = isset($header->message_id) ? $header->message_id : null;
+                    
                     // Thread ID oluştur (subject bazlı)
                     $threadId = md5(preg_replace('/^(Re:|RE:|Fwd:|FWD:)\s*/i', '', trim($subject)));
                     
                     // Message type belirle (tunahan@akduhan.com'dan geliyorsa outgoing)
                     $messageType = ($fromEmail === 'tunahan@akduhan.com') ? 'outgoing' : 'incoming';
                     
-                    // Veritabanında zaten var mı kontrol et
-                    $existingMessage = Message::where('email', $fromEmail)
-                        ->where('subject', $subject)
-                        ->where('created_at', '>=', Carbon::parse($header->date)->subMinutes(5))
-                        ->where('created_at', '<=', Carbon::parse($header->date)->addMinutes(5))
-                        ->first();
+                    // Veritabanında zaten var mı kontrol et (Message-ID ile)
+                    $existingMessage = null;
+                    if ($messageId) {
+                        $existingMessage = Message::where('message_id', $messageId)->first();
+                    }
+                    
+                    // Message-ID yoksa eski yöntemle kontrol et
+                    if (!$existingMessage && !$messageId) {
+                        $existingMessage = Message::where('email', $fromEmail)
+                            ->where('subject', $subject)
+                            ->where('created_at', '>=', Carbon::parse($header->date)->subMinutes(5))
+                            ->where('created_at', '<=', Carbon::parse($header->date)->addMinutes(5))
+                            ->first();
+                    }
                     
                     if (!$existingMessage) {
                         // Email yapısını kontrol et
@@ -181,6 +192,7 @@ class ImapService
                             'email' => $fromEmail,
                             'subject' => $subject,
                             'thread_id' => $threadId,
+                            'message_id' => $messageId,
                             'message' => trim($body),
                             'source' => 'email',
                             'message_type' => $messageType,
