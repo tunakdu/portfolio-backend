@@ -100,18 +100,41 @@ class ImapService
                     // Message type belirle (tunahan@akduhan.com'dan geliyorsa outgoing)
                     $messageType = ($fromEmail === 'tunahan@akduhan.com') ? 'outgoing' : 'incoming';
                     
-                    // Veritabanında zaten var mı kontrol et (Message-ID ile)
+                    // Çoklu duplikasyon kontrolü
                     $existingMessage = null;
+                    
+                    // 1. Message-ID ile kontrol (en güvenilir)
                     if ($messageId) {
                         $existingMessage = Message::where('message_id', $messageId)->first();
                     }
                     
-                    // Message-ID yoksa eski yöntemle kontrol et
-                    if (!$existingMessage && !$messageId) {
+                    // 2. Message-ID yoksa veya bulunamazsa, subject + email + tarih ile kontrol
+                    if (!$existingMessage) {
+                        $messageDate = Carbon::parse($header->date);
                         $existingMessage = Message::where('email', $fromEmail)
                             ->where('subject', $subject)
-                            ->where('created_at', '>=', Carbon::parse($header->date)->subMinutes(5))
-                            ->where('created_at', '<=', Carbon::parse($header->date)->addMinutes(5))
+                            ->where('message_date', '>=', $messageDate->copy()->subMinutes(2))
+                            ->where('message_date', '<=', $messageDate->copy()->addMinutes(2))
+                            ->first();
+                    }
+                    
+                    // 3. Son çare: exact match (email + subject + body hash)
+                    if (!$existingMessage) {
+                        // Body'yi almak için geçici olarak çek
+                        $tempBody = '';
+                        $structure = imap_fetchstructure($this->connection, $msgno);
+                        if ($structure->type == 1) {
+                            $tempBody = imap_fetchbody($this->connection, $msgno, '1.1');
+                        } else {
+                            $tempBody = imap_fetchbody($this->connection, $msgno, 1);
+                        }
+                        
+                        $bodyHash = md5(trim(strip_tags($tempBody)));
+                        $subjectHash = md5(trim($subject));
+                        
+                        $existingMessage = Message::where('email', $fromEmail)
+                            ->whereRaw('MD5(TRIM(subject)) = ?', [$subjectHash])
+                            ->whereRaw('MD5(TRIM(REGEXP_REPLACE(message, "<[^>]*>", ""))) = ?', [$bodyHash])
                             ->first();
                     }
                     
@@ -187,23 +210,35 @@ class ImapService
                             $body = mb_convert_encoding($body, 'UTF-8', 'auto');
                         }
                         
-                        $newMessage = Message::create([
-                            'name' => $fromName,
-                            'email' => $fromEmail,
-                            'subject' => $subject,
-                            'thread_id' => $threadId,
-                            'message_id' => $messageId,
-                            'message' => trim($body),
-                            'source' => 'email',
-                            'message_type' => $messageType,
-                            'message_date' => Carbon::parse($header->date),
-                            'is_read' => false,
-                            'created_at' => Carbon::parse($header->date)
-                        ]);
-                        
-                        $newMessages[] = $newMessage;
-                        
-                        Log::info('Yeni e-posta kaydedildi: ' . $subject);
+                        try {
+                            $newMessage = Message::create([
+                                'name' => $fromName,
+                                'email' => $fromEmail,
+                                'subject' => $subject,
+                                'thread_id' => $threadId,
+                                'message_id' => $messageId,
+                                'message' => trim($body),
+                                'source' => 'email',
+                                'message_type' => $messageType,
+                                'message_date' => Carbon::parse($header->date),
+                                'is_read' => false,
+                                'created_at' => Carbon::parse($header->date)
+                            ]);
+                            
+                            $newMessages[] = $newMessage;
+                            Log::info('Yeni e-posta kaydedildi: ' . $subject);
+                            
+                        } catch (\Illuminate\Database\QueryException $e) {
+                            // Unique constraint violation - duplicate detected
+                            if (strpos($e->getMessage(), 'unique_email_message') !== false || 
+                                strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                                Log::info('Duplikasyon tespit edildi ve atlandı: ' . $subject);
+                                continue; // Bu email'i atla, devam et
+                            } else {
+                                // Başka bir database hatası - yeniden fırlat
+                                throw $e;
+                            }
+                        }
                     }
                 }
             }
