@@ -23,7 +23,7 @@ deploy() {
     sudo supervisorctl stop laravel-worker:* laravel-scheduler || true
     
     echo "🔍 Git durumu kontrol et"
-    git status --porcelain
+    git status --porcelain || true
     echo "📋 Son commit bilgisi"
     git log -1 --oneline
     
@@ -31,7 +31,7 @@ deploy() {
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
     
     echo "🎨 NPM install ve build"
-    npm install --production
+    npm install
     
     echo "🏗️ Vite build başlatılıyor"
     npm run build

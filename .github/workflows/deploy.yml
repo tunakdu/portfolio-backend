@@ -21,10 +21,14 @@ jobs:
           echo "🚀 GitHub Actions deployment başlatılıyor..."
           cd /home/tunakdu/web/akduhan.com/public_html
           
-          # Tüm local değişiklikleri temizle ve en son versiyonu al
+          # Önemli dosyaları koru ve en son versiyonu al
+          cp -r ssl ssl_backup 2>/dev/null || true
           git reset --hard HEAD
-          git clean -fd
+          git clean -fd -e ssl/
           git pull origin master
+          # SSL dosyalarını geri getir
+          cp -r ssl_backup/* ssl/ 2>/dev/null || true
+          rm -rf ssl_backup
           
           # Deploy script'i çalıştırılabilir yap
           chmod +x deploy.sh
