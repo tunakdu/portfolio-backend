@@ -458,7 +458,7 @@ const aboutData = computed(() => {
     name: about.fullName || 'Tunahan Akduhan',
     title: about.title || 'Full Stack Developer & Backend Specialist',
     bio: about.bio || 'Modern web teknolojileri ile kullanıcı deneyimi odaklı projeler geliştiriyorum.',
-    location: about.location || contact.location || getInfo('address') || getInfo('location') || 'Bursa, Türkiye',
+    location: 'Bursa, Türkiye', // Geçici sabit değer - database güncellenene kadar
     phone: contact.phone || '+90 (555) 123-4567',
     email: contact.email || 'akduhancontact@gmail.com',
     githubUrl: social.github || 'https://github.com/tunahanakduhan',

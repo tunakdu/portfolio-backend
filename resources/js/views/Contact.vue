@@ -135,7 +135,7 @@ const contactInfo = computed(() => {
     const displayEmail = getInfo('email') || "akduhant@gmail.com";
     const displayPhone = getInfo('phone') || "+90 542 740 19 96";
     
-    const displayLocation = getInfo('address') || getInfo('location') || getAboutInfo().location || getContactInfo().location || "Bursa, Türkiye";
+    const displayLocation = "Bursa, Türkiye"; // Geçici sabit değer - database güncellenene kadar
 
     return [
         {
