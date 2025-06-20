@@ -33,10 +33,16 @@ jobs:
           cp .env_backup .env 2>/dev/null || true
           rm -f .env_backup
           
+          echo "🔍 Mevcut SSL durumu:"
+          ls -la ssl/ 2>/dev/null || echo "SSL klasörü yok"
+          
           # MySQL SSL sertifikalarını zorla yeniden oluştur
           echo "🔐 MySQL SSL sertifikaları yeniden oluşturuluyor..."
           rm -rf ssl
           mkdir -p ssl
+          
+          echo "🗂️ SSL klasörü oluşturuldu:"
+          ls -la ssl/
           
           # Geçerli bir SSL sertifikası oluştur
           cat > ssl/ca.pem << 'EOF'
@@ -62,8 +68,11 @@ jobs:
           -----END CERTIFICATE-----
           EOF
           
-          echo "✅ SSL sertifikası oluşturuldu: $(ls -la ssl/ca.pem)"
+          echo "✅ SSL sertifikası oluşturuldu:"
+          ls -la ssl/ca.pem
           echo "📊 SSL dosya boyutu: $(wc -c < ssl/ca.pem) byte"
+          echo "🔍 SSL dosya içeriği (ilk 5 satır):"
+          head -5 ssl/ca.pem
           
           # Deploy script'i çalıştırılabilir yap
           chmod +x deploy.sh
