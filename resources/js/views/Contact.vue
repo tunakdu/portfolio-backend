@@ -121,7 +121,7 @@ const settings = ref(null);
 const loading = ref(false);
 const isSubmitting = ref(false);
 const submitStatus = ref('idle');
-const { fetchPersonalInfo, getContactInfo, getInfo } = usePersonalInfo();
+const { fetchPersonalInfo, getContactInfo, getInfo, getAboutInfo } = usePersonalInfo();
 const { trackContact, trackEmailClick, trackPhoneClick, trackFormSubmit } = useAnalytics();
 
 const form = ref({
@@ -135,20 +135,7 @@ const contactInfo = computed(() => {
     const displayEmail = getInfo('email') || "akduhant@gmail.com";
     const displayPhone = getInfo('phone') || "+90 542 740 19 96";
     
-    // Debug için tüm lokasyon bilgilerini kontrol et
-    const address = getInfo('address');
-    const location = getInfo('location');
-    const aboutInfo = getAboutInfo();
-    const contactInfo = getContactInfo();
-    
-    console.log('Location debug:', { 
-      address, 
-      location, 
-      aboutLocation: aboutInfo.location,
-      contactLocation: contactInfo.location 
-    });
-    
-    const displayLocation = address || location || aboutInfo.location || contactInfo.location || "Bursa, Türkiye";
+    const displayLocation = getInfo('address') || getInfo('location') || getAboutInfo().location || getContactInfo().location || "Bursa, Türkiye";
 
     return [
         {

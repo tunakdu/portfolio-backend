@@ -1,5 +1,4 @@
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 const user = ref(null);
@@ -7,8 +6,6 @@ const token = ref(localStorage.getItem('authToken'));
 const isLoading = ref(false);
 
 export const useAuth = () => {
-  const router = useRouter();
-
   const isAuthenticated = computed(() => !!token.value && !!user.value);
 
   const login = async (email, password) => {
@@ -59,8 +56,8 @@ export const useAuth = () => {
       // Axios header'ından token'ı kaldır
       delete axios.defaults.headers.common['Authorization'];
       
-      // Login sayfasına yönlendir
-      router.push('/admin/login');
+      // Ana sayfaya yönlendir (router kullanmadan)
+      window.location.href = '/';
     }
   };
 
