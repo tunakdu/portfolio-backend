@@ -22,10 +22,31 @@ jobs:
 
           echo "🔄 Deployment başlatılıyor..."
 
+          # ÇAKIŞMA TESPİTİ - Başka deploy sistemi çalışıyor mu?
+          echo "🔍 Çakışan deploy sistemleri kontrol ediliyor..."
+
+          # Git process kontrolü
+          GIT_PROCESSES=$(ps aux | grep -v grep | grep -c "git pull\|git fetch\|git checkout" || echo "0")
+          if [ "$GIT_PROCESSES" -gt "0" ]; then
+            echo "⚠️ Başka git işlemi tespit edildi, bekleniyor..."
+            sleep 5
+          fi
+
+          # Lock file oluştur
+          LOCK_FILE="/tmp/deploy.lock"
+          if [ -f "$LOCK_FILE" ]; then
+            echo "⚠️ Başka deployment çalışıyor (lock file mevcut), bekleniyor..."
+            rm -f "$LOCK_FILE" # Eski lock'u temizle
+          fi
+          echo $ > "$LOCK_FILE"
+
+          # Deploy indicator oluştur
+          echo "$(date): GitHub Action Deploy Started" > .deploy-status
+
           # Supervisor worker'larını zarif bir şekilde durdur
           echo "⏸️  Supervisor worker'ları durduruluyor..."
-          sudo supervisorctl stop all || true
-          sleep 2
+          sudo supervisorctl stop laravel-worker:* || true
+          sudo supervisorctl stop laravel-scheduler || true
 
           # Git pull latest changes (sadece kodu güncelle)
           echo "📥 Kod güncellemeleri alınıyor..."
@@ -68,15 +89,41 @@ jobs:
           php artisan route:clear || true
           php artisan queue:clear || true
 
-          # Run database migrations - ÖNCE MEVCUT MIGRATION'LARI KONTROL ET
+          # Run database migrations
           echo "🗄️  Database migration'ları çalıştırılıyor..."
-          php artisan migrate:status
-          php artisan migrate --force --step
+          php artisan migrate --force
 
-          # Storage ve bootstrap dizinlerine yazma izni ver
-          echo "📁 Dosya izinleri ayarlanıyor..."
-          sudo chown -R tunakdu:www-data storage bootstrap/cache
-          sudo chmod -R 775 storage bootstrap/cache
+          # KAPSAMLI DOSYA İZİNLERİ DÜZELTMESİ
+          echo "📁 Kapsamlı dosya izinleri ayarlanıyor..."
+
+          # Ana dizin sahipliği
+          sudo chown -R tunakdu:www-data ./
+
+          # Kritik dizinler için özel izinler
+          sudo chmod -R 755 ./
+          sudo chmod -R 775 storage/
+          sudo chmod -R 775 bootstrap/cache/
+          sudo chmod -R 755 database/
+          sudo chmod -R 755 database/migrations/
+          sudo chmod -R 755 app/
+          sudo chmod -R 755 config/
+          sudo chmod -R 755 routes/
+          sudo chmod -R 755 resources/
+
+          # Artisan executable olsun
+          sudo chmod +x artisan
+
+          # Log dosyaları yazılabilir olsun
+          sudo chmod -R 666 storage/logs/*.log 2>/dev/null || true
+
+          # .env dosyası güvenli ama okunabilir olsun
+          sudo chmod 644 .env
+
+          # Composer ve NPM cache dizinleri
+          sudo chmod -R 755 vendor/ 2>/dev/null || true
+          sudo chmod -R 755 node_modules/ 2>/dev/null || true
+
+          echo "✅ Dosya izinleri düzeltildi"
 
           # Production için cache optimizasyonları (SONRA CACHE'LE)
           echo "⚡ Production cache oluşturuluyor..."
@@ -84,21 +131,15 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
-          # Supervisor tamamen yeniden başlat - BOZULMA SORUNU İÇİN
-          echo "🔄 Supervisor servisini yeniden başlatılıyor..."
-          sudo systemctl restart supervisor || true
-          sleep 3
-          
           # Supervisor konfigürasyonlarını yeniden yükle
           echo "🔄 Supervisor konfigürasyonları güncelleniyor..."
           sudo supervisorctl reread
           sudo supervisorctl update
-          sleep 2
 
           # Queue worker'larını yeniden başlat
           echo "🚀 Supervisor worker'ları başlatılıyor..."
-          sudo supervisorctl start all || sudo supervisorctl restart all
-          sleep 2
+          sudo supervisorctl start laravel-worker:*
+          sudo supervisorctl start laravel-scheduler
 
           # Worker durumlarını kontrol et
           echo "✅ Worker durumları kontrol ediliyor..."
@@ -107,6 +148,30 @@ jobs:
           # Queue restart ile mevcut worker'ları zarif şekilde yeniden başlat
           echo "🔄 Queue worker'ları yenileniyor..."
           php artisan queue:restart
+
+          # POST-DEPLOYMENT VALIDATION
+          echo "🔍 Deployment doğrulaması yapılıyor..."
+
+          # Kritik dosyaların varlığını kontrol et
+          echo "📄 Kritik dosya kontrolleri:"
+          [ -f artisan ] && echo "✅ artisan" || echo "❌ artisan eksik"
+          [ -f .env ] && echo "✅ .env" || echo "❌ .env eksik"
+          [ -d storage ] && echo "✅ storage/" || echo "❌ storage/ eksik"
+          [ -d bootstrap/cache ] && echo "✅ bootstrap/cache/" || echo "❌ bootstrap/cache/ eksik"
+
+          # Yazma izinleri kontrol et
+          echo "🔐 Yazma izinleri kontrolleri:"
+          [ -w storage ] && echo "✅ storage yazılabilir" || echo "❌ storage yazılamaz"
+          [ -w bootstrap/cache ] && echo "✅ bootstrap/cache yazılabilir" || echo "❌ bootstrap/cache yazılamaz"
+          [ -w database/migrations ] && echo "✅ migrations yazılabilir" || echo "❌ migrations yazılamaz"
+
+          # Artisan komutlarını test et
+          echo "⚙️ Artisan komut testleri:"
+          php artisan --version > /dev/null && echo "✅ Artisan çalışıyor" || echo "❌ Artisan hatası"
+
+          # Migration yetenekleri test et
+          echo "🗄️ Migration test:"
+          php artisan migrate:status > /dev/null && echo "✅ Migration sistem çalışıyor" || echo "❌ Migration sistem hatası"
 
           # IMAP bağlantısını test et
           echo "📧 IMAP bağlantısı test ediliyor..."
@@ -132,3 +197,9 @@ jobs:
           echo "===================="
 
           echo "🚀 Deployment başarıyla tamamlandı!"
+
+          # Deploy tamamlandı indicator
+          echo "$(date): GitHub Action Deploy Completed Successfully" > .deploy-status
+
+          # Lock file temizle
+          rm -f "/tmp/deploy.lock"
