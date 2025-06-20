@@ -24,8 +24,8 @@ jobs:
 
           # Supervisor worker'larını zarif bir şekilde durdur
           echo "⏸️  Supervisor worker'ları durduruluyor..."
-          sudo supervisorctl stop laravel-worker:* || true
-          sudo supervisorctl stop laravel-scheduler || true
+          sudo supervisorctl stop all || true
+          sleep 2
 
           # Git pull latest changes (sadece kodu güncelle)
           echo "📥 Kod güncellemeleri alınıyor..."
@@ -68,9 +68,10 @@ jobs:
           php artisan route:clear || true
           php artisan queue:clear || true
 
-          # Run database migrations
+          # Run database migrations - ÖNCE MEVCUT MIGRATION'LARI KONTROL ET
           echo "🗄️  Database migration'ları çalıştırılıyor..."
-          php artisan migrate --force
+          php artisan migrate:status
+          php artisan migrate --force --step
 
           # Storage ve bootstrap dizinlerine yazma izni ver
           echo "📁 Dosya izinleri ayarlanıyor..."
@@ -83,15 +84,21 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
+          # Supervisor tamamen yeniden başlat - BOZULMA SORUNU İÇİN
+          echo "🔄 Supervisor servisini yeniden başlatılıyor..."
+          sudo systemctl restart supervisor || true
+          sleep 3
+          
           # Supervisor konfigürasyonlarını yeniden yükle
           echo "🔄 Supervisor konfigürasyonları güncelleniyor..."
           sudo supervisorctl reread
           sudo supervisorctl update
+          sleep 2
 
           # Queue worker'larını yeniden başlat
           echo "🚀 Supervisor worker'ları başlatılıyor..."
-          sudo supervisorctl start laravel-worker:*
-          sudo supervisorctl start laravel-scheduler
+          sudo supervisorctl start all || sudo supervisorctl restart all
+          sleep 2
 
           # Worker durumlarını kontrol et
           echo "✅ Worker durumları kontrol ediliyor..."
