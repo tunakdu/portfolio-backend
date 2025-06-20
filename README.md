@@ -9,7 +9,7 @@
 
 ## About This Portfolio
 
-This is Tunahan Akduhan's personal portfolio website built with Laravel 12 and featuring automatic email synchronization with webhook deployment.
+This is Tunahan Akduhan's personal portfolio website built with Laravel 12 and featuring automatic email synchronization with GitHub Actions deployment.
 
 ## About Laravel
 
