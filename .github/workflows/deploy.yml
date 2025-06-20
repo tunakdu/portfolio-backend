@@ -24,44 +24,15 @@ jobs:
           # Backup .env
           cp .env .env_backup 2>/dev/null || true
           
-          # Git update
+          # Git update (protect SSL certificates)
           git reset --hard HEAD
-          git clean -fd -e .env -e storage/
+          git clean -fd -e .env -e storage/ -e ssl/
           git pull origin master
           
           # Restore .env
           cp .env_backup .env 2>/dev/null || true
           rm -f .env_backup
           
-          # CREATE SSL CERTIFICATE
-          echo "🔐 Creating SSL certificate..."
-          rm -rf ssl
-          mkdir -p ssl
-          
-          cat > ssl/ca.pem << 'SSLEOF'
-          -----BEGIN CERTIFICATE-----
-          MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
-          ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
-          b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
-          MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
-          b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
-          ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
-          9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
-          IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
-          VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
-          93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
-          jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
-          AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
-          A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
-          U5PMCCjjmCXPI6T53iHTfIuJruydjsw2hUwsOBMhbgLNHgr48bvCfpCKxWvV9s3P
-          B8YPJ3zHzGiJvEtHk/8yI+YHcCK5RNbQMEsw0bhsNMhfHAT0T6NPwNvbAAJRhZcG
-          veDON2gSW3HOuPepHU9DxtTZ5Rj4B4aNnDdqN6oqQdZhSKGRANtYe4k5K+yHc2DZ
-          7iCt1oqgvGHJTyJxb3qtJlb9qQwt8S8X5mF5XHXE6d8U6vTpxZGLmINd7w8R3mQV
-          WrBQR9jSHdl5ry8I2CgVF7Gw
-          -----END CERTIFICATE-----
-          SSLEOF
-          
-          echo "✅ SSL certificate created: $(ls -la ssl/ca.pem)"
           
           # Run deployment script
           chmod +x deploy.sh
