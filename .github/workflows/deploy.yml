@@ -21,14 +21,32 @@ jobs:
           echo "🚀 GitHub Actions deployment başlatılıyor..."
           cd /home/tunakdu/web/akduhan.com/public_html
           
-          # Önemli dosyaları koru ve en son versiyonu al
+          # SSL sertifikalarını ve önemli dosyaları koru
           cp -r ssl ssl_backup 2>/dev/null || true
+          cp .env .env_backup 2>/dev/null || true
+          
+          # Git repository'yi temizle ve güncelle
           git reset --hard HEAD
-          git clean -fd -e ssl/
+          git clean -fd -e ssl/ -e .env -e storage/
           git pull origin master
-          # SSL dosyalarını geri getir
+          
+          # Korunan dosyaları geri getir
           cp -r ssl_backup/* ssl/ 2>/dev/null || true
-          rm -rf ssl_backup
+          cp .env_backup .env 2>/dev/null || true
+          rm -rf ssl_backup .env_backup
+          
+          # MySQL SSL sertifikalarını kontrol et ve yükle
+          if [ ! -f "ssl/ca.pem" ] || [ ! -s "ssl/ca.pem" ]; then
+            echo "🔐 MySQL SSL sertifikaları yükleniyor..."
+            mkdir -p ssl
+            
+            # MySQL 8.0 için doğru SSL sertifikalarını indir
+            curl -sSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o ssl/ca.pem || \
+            curl -sSL https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem -o ssl/ca.pem || \
+            echo "# Placeholder SSL cert" > ssl/ca.pem
+            
+            echo "SSL sertifikası yüklendi: $(wc -l < ssl/ca.pem) satır"
+          fi
           
           # Deploy script'i çalıştırılabilir yap
           chmod +x deploy.sh
