@@ -13,10 +13,10 @@ jobs:
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.PORT || 22 }}
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        port: ${{ secrets.VPS_PORT }}
         script: |
           cd /home/tunakdu/web/akduhan.com/public_html
 
