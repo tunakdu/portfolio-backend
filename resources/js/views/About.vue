@@ -152,21 +152,24 @@
         </div>
 
         <div class="relative max-w-6xl mx-auto">
-          <!-- Central Timeline Line -->
-          <div class="absolute left-1/2 transform -translate-x-0.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600"></div>
+          <!-- Central Timeline Line - Desktop -->
+          <div class="absolute left-1/2 transform -translate-x-0.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 hidden md:block"></div>
           
-          <div class="space-y-12">
+          <!-- Mobile Timeline Line -->
+          <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 md:hidden"></div>
+          
+          <div class="space-y-8 md:space-y-12">
             <div
               v-for="(exp, index) in sortedExperiences"
               :key="exp.id"
-              :class="`relative animate-fade-up ${index % 2 === 0 ? 'text-right pr-8' : 'text-left pl-8'}`"
+              :class="`relative animate-fade-up ${index % 2 === 0 ? 'md:text-right md:pr-8' : 'md:text-left md:pl-8'} pl-16 md:pl-8`"
               :style="{ animationDelay: `${index * 0.1}s` }"
             >
               <!-- Timeline Dot -->
-              <div :class="`absolute left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full border-4 border-white shadow-lg z-10 ${getTimelineDotColor(index)}`"></div>
+              <div :class="`absolute w-4 h-4 rounded-full border-4 border-white shadow-lg z-10 ${getTimelineDotColor(index)} left-4 md:left-1/2 transform md:-translate-x-1/2`"></div>
               
               <!-- Content Card -->
-              <div :class="`modern-card p-6 hover:shadow-xl transition-all duration-300 ${index % 2 === 0 ? 'mr-8' : 'ml-8'} w-5/12 ${index % 2 === 0 ? 'ml-auto' : ''} ${getCardBorderColor(index)}`">
+              <div :class="`modern-card p-4 md:p-6 hover:shadow-xl transition-all duration-300 ${index % 2 === 0 ? 'md:mr-8 md:w-5/12 md:ml-auto' : 'md:ml-8 md:w-5/12'} w-full ${getCardBorderColor(index)}`">
                 <div class="mb-4">
                   <div :class="`text-sm font-medium mb-2 ${getDateColor(index)}`">
                     {{ formatDate(exp.start_date) }} - {{ exp.is_current ? 'Devam Ediyor' : formatDate(exp.end_date) }}
@@ -786,14 +789,16 @@ onUnmounted(() => {
 /* Responsive timeline adjustments */
 @media (max-width: 768px) {
   .timeline-card {
-    width: 85% !important;
-    margin-left: 15% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
     margin-right: 0 !important;
+    text-align: left !important;
   }
   
   .timeline-card.even {
-    margin-left: 15% !important;
+    margin-left: 0 !important;
     margin-right: 0 !important;
+    text-align: left !important;
   }
 }
 

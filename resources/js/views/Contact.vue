@@ -8,7 +8,7 @@
             💬 İletişim
           </span>
           <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Birlikte Çalışalım
+            Birlikte <span class="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Çalışalım</span>
           </h2>
           <p class="text-xl text-gray-600 leading-relaxed">
             Projeleriniz için benimle iletişime geçmekten çekinmeyin. Beraber harika şeyler
@@ -20,8 +20,8 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
         <!-- Contact Info Cards -->
         <div v-for="item in contactInfo" :key="item.title" class="modern-card p-6 text-center group hover:scale-105 transition-all duration-300">
-          <div :class="`w-16 h-16 rounded-2xl ${item.color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`">
-            <component :is="item.icon" class="w-8 h-8" />
+          <div :class="`w-16 h-16 rounded-2xl ${item.bgColor} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`">
+            <span class="text-3xl">{{ item.emoji }}</span>
           </div>
           <h3 class="text-xl font-bold text-gray-900 mb-2">{{ item.title }}</h3>
           <a :href="item.href" @click="handleContactClick(item)" class="text-lg font-medium text-blue-600 hover:text-blue-700 transition-colors block mb-2">
@@ -143,7 +143,8 @@ const contactInfo = computed(() => {
             value: displayEmail,
             href: `mailto:${displayEmail}`,
             description: "Mesajlarınızı 24 saat içinde yanıtlıyorum",
-            color: "bg-blue-100 text-blue-600"
+            emoji: "📧",
+            bgColor: "bg-gradient-to-br from-blue-500 to-blue-600"
         },
         {
             icon: shallowRef(Phone),
@@ -151,7 +152,8 @@ const contactInfo = computed(() => {
             value: displayPhone,
             href: `tel:${displayPhone}`,
             description: "Haftanın 6 günü erişilebilirim",
-            color: "bg-green-100 text-green-600"
+            emoji: "📱",
+            bgColor: "bg-gradient-to-br from-green-500 to-green-600"
         },
         {
             icon: shallowRef(MapPin),
@@ -159,7 +161,8 @@ const contactInfo = computed(() => {
             value: displayLocation,
             href: "#",
             description: "Yakın çevrede buluşabiliriz",
-            color: "bg-purple-100 text-purple-600"
+            emoji: "📍",
+            bgColor: "bg-gradient-to-br from-pink-500 to-pink-600"
         }
     ];
 });

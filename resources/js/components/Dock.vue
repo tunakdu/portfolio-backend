@@ -1,8 +1,8 @@
 <template>
-  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+  <div class="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-50">
     <div class="relative">
-      <div class="bg-black/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-3 shadow-2xl">
-        <div class="flex items-center justify-center space-x-2">
+      <div class="bg-black/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-2 sm:p-3 shadow-2xl">
+        <div class="flex items-center justify-center space-x-1 sm:space-x-2">
           <!-- Normal Menu Items -->
           <div
             v-for="(item, index) in menuItems"
@@ -31,17 +31,17 @@
               :tap="{ scale: 0.95 }"
               :animate="{ scale: hoveredIndex === index ? 1.1 : 1, y: hoveredIndex === index ? -3 : 0 }"
               :transition="{ duration: 0.2, ease: 'easeOut' }"
-              class="relative p-2 rounded-xl transition-all duration-300 cursor-pointer group"
+              class="relative p-1.5 sm:p-2 rounded-xl transition-all duration-300 cursor-pointer group"
             >
               <div
                 :class="[
-                  'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-300',
                   isActive(item.href)
                     ? `bg-gradient-to-br ${item.color} shadow-lg border border-white/30 scale-105`
                     : `bg-gradient-to-br ${item.color} hover:scale-105 backdrop-blur-sm border border-white/20 shadow-sm opacity-80 hover:opacity-100`
                 ]"
               >
-                <component :is="item.icon" :class="['w-5 h-5 transition-all duration-300', 'text-white drop-shadow-sm']" />
+                <component :is="item.icon" :class="['w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300', 'text-white drop-shadow-sm']" />
               </div>
 
               <div
@@ -54,8 +54,54 @@
             </button>
           </div>
 
-          <!-- Normal ve Admin items arasındaki ayıraç -->
-          <div v-if="showAdminRoutes" class="flex items-center mx-2">
+          <!-- Mobile Admin Menu Toggle - sadece mobilde göster -->
+          <div v-if="showAdminRoutes" class="sm:hidden flex items-center mx-1">
+            <div class="w-px h-6 bg-white/40"></div>
+          </div>
+          
+          <div v-if="showAdminRoutes" class="sm:hidden relative">
+            <button
+              @click="toggleMobileAdmin"
+              class="relative p-1.5 rounded-xl transition-all duration-300 cursor-pointer"
+            >
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-400 via-gray-500 to-zinc-500 shadow-lg border border-white/20">
+                <component :is="mobileAdminOpen ? 'X' : 'Menu'" class="w-4 h-4 text-white drop-shadow-sm" />
+              </div>
+            </button>
+            
+            <!-- Mobile Admin Dropdown -->
+            <div
+              v-if="mobileAdminOpen"
+              class="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-md rounded-xl p-2 min-w-48"
+            >
+              <div class="space-y-1">
+                <button
+                  v-for="item in adminItems"
+                  :key="item.href"
+                  @click="() => { router.push(item.href); mobileAdminOpen = false; }"
+                  class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <div :class="`w-8 h-8 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center`">
+                    <component :is="item.icon" class="w-4 h-4 text-white" />
+                  </div>
+                  <span class="text-white text-sm font-medium">{{ item.label }}</span>
+                </button>
+                <div class="border-t border-white/20 my-2"></div>
+                <button
+                  @click="() => { handleLogout(); mobileAdminOpen = false; }"
+                  class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-500/20 transition-colors"
+                >
+                  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                    <LogOut class="w-4 h-4 text-white" />
+                  </div>
+                  <span class="text-white text-sm font-medium">Çıkış Yap</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Admin Items - sadece desktop'ta göster -->
+          <div v-if="showAdminRoutes" class="hidden sm:flex items-center mx-2">
             <div class="w-px h-6 bg-white/40"></div>
           </div>
           
@@ -64,7 +110,7 @@
             <div
               v-for="(item, index) in adminItems"
               :key="item.href"
-              class="relative"
+              class="relative hidden sm:block"
               @mouseenter="hoveredIndex = menuItems.length + index"
               @mouseleave="hoveredIndex = null"
             >
@@ -117,8 +163,8 @@
             </div>
           </template>
 
-          <!-- Logout Button - Admin olduğunda göster -->
-          <div v-if="showAdminRoutes" class="relative">
+          <!-- Logout Button - Admin olduğunda göster - sadece desktop -->
+          <div v-if="showAdminRoutes" class="relative hidden sm:block">
             <div
               v-if="hoveredIndex === -1"
               class="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap font-medium"
@@ -148,14 +194,19 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2, Rss, Newspaper } from 'lucide-vue-next';
+import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2, Rss, Newspaper, Menu, X } from 'lucide-vue-next';
 import { useAuth } from '../composables/useAuth.js';
 import Swal from 'sweetalert2';
 
 const hoveredIndex = ref(null);
+const mobileAdminOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
 const { isAuthenticated, logout } = useAuth();
+
+const toggleMobileAdmin = () => {
+  mobileAdminOpen.value = !mobileAdminOpen.value;
+};
 
 const menuItems = [
   { icon: Home, href: "/", label: "Ana Sayfa", color: "from-indigo-500 via-blue-500 to-cyan-500" },
