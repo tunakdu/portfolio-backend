@@ -21,8 +21,10 @@ jobs:
           echo "🚀 GitHub Actions deployment başlatılıyor..."
           cd /home/tunakdu/web/akduhan.com/public_html
           
-          # Local değişiklikleri stash et
-          git stash push -m "Auto-stash before deployment"
+          # Tüm local değişiklikleri temizle ve en son versiyonu al
+          git reset --hard HEAD
+          git clean -fd
+          git pull origin master
           
           # Deploy script'i çalıştırılabilir yap
           chmod +x deploy.sh

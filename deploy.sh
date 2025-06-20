@@ -22,9 +22,6 @@ deploy() {
     echo "⏸️ Supervisor durdur"
     sudo supervisorctl stop laravel-worker:* laravel-scheduler || true
     
-    echo "📥 Git pull"
-    git pull origin master
-    
     echo "🔍 Git durumu kontrol et"
     git status --porcelain
     echo "📋 Son commit bilgisi"
