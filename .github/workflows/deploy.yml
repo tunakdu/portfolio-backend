@@ -135,7 +135,31 @@ jobs:
 
           # Production için cache optimizasyonları (SONRA CACHE'LE)
           echo "⚡ Production cache oluşturuluyor..."
+          
+          # IMAP ayarlarının .env'de olduğunu doğrula
+          echo "🔍 IMAP .env kontrol:"
+          grep "IMAP_" .env | head -4
+          
+          # Mail config dosyasının varlığını kontrol et
+          echo "🔍 Config dosyası kontrol:"
+          if [ -f config/mail.php ]; then
+            echo "✅ config/mail.php mevcut"
+            grep -A 10 "imap.*=>" config/mail.php || echo "⚠️ IMAP section bulunamadı"
+          else
+            echo "❌ config/mail.php bulunamadı"
+          fi
+          
           php artisan config:cache
+          
+          # Cache sonrası IMAP config kontrolü
+          echo "🔍 Cache sonrası IMAP config:"
+          php artisan tinker --execute="
+          echo 'Cached Host: ' . config('mail.imap.host', 'NULL') . \"\n\";
+          echo 'Cached User: ' . config('mail.imap.username', 'NULL') . \"\n\";
+          echo 'Env Host: ' . env('IMAP_HOST', 'NULL') . \"\n\";
+          echo 'Env User: ' . env('IMAP_USERNAME', 'NULL') . \"\n\";
+          "
+          
           php artisan route:cache
           php artisan view:cache
 
