@@ -50,16 +50,24 @@ jobs:
 
           # Git pull latest changes (sadece kodu güncelle)
           echo "📥 Kod güncellemeleri alınıyor..."
-          git pull origin master
+          if [ -d .git ]; then
+            git pull origin master
+          else
+            echo "⚠️ Git repository bulunamadı, manuel deployment"
+          fi
 
           # Install/Update Composer dependencies (production optimized)
           echo "📦 Composer dependencies güncelleniyor..."
-          composer install --no-dev --optimize-autoloader --no-interaction
+          COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
 
           # Install/Update NPM dependencies and build assets
           echo "🏗️  Assets build ediliyor..."
-          npm install --production
-          npm run build
+          npm install --omit=dev
+          if command -v vite >/dev/null 2>&1; then
+            npm run build
+          else
+            echo "⚠️ Vite bulunamadı, npm build atlanıyor"
+          fi
 
           # MySQL SSL dosyalarını koru/kopyala (her deploy sonrası)
           echo "🔐 SSL dosyaları kontrol ediliyor..."
@@ -87,7 +95,7 @@ jobs:
           php artisan cache:clear || true
           php artisan view:clear || true
           php artisan route:clear || true
-          php artisan queue:clear || true
+          php artisan queue:clear --force || true
 
           # Run database migrations
           echo "🗄️  Database migration'ları çalıştırılıyor..."
@@ -173,13 +181,18 @@ jobs:
           echo "🗄️ Migration test:"
           php artisan migrate:status > /dev/null && echo "✅ Migration sistem çalışıyor" || echo "❌ Migration sistem hatası"
 
-          # IMAP bağlantısını test et
-          echo "📧 IMAP bağlantısı test ediliyor..."
+          # IMAP konfigürasyon ve bağlantı testi
+          echo "📧 IMAP konfigürasyonu test ediliyor..."
           php artisan tinker --execute="
           try {
+              echo 'IMAP Config Test:' . \"\n\";
+              echo 'Host: ' . config('mail.imap.host', 'NULL') . \"\n\";
+              echo 'Username: ' . (config('mail.imap.username') ? 'SET' : 'NULL') . \"\n\";
+              echo 'Password: ' . (config('mail.imap.password') ? 'SET' : 'NULL') . \"\n\";
+              
               \$imap = new App\\Services\\ImapService();
               \$result = \$imap->testConnection();
-              echo \$result['success'] ? '✅ IMAP bağlantısı başarılı' : '❌ IMAP hatası: ' . \$result['message'];
+              echo \$result['success'] ? '✅ IMAP bağlantısı başarılı' : '❌ IMAP hatası: ' . (\$result['message'] ?? 'Bilinmeyen hata');
               echo \"\n\";
           } catch (Exception \$e) {
               echo '❌ IMAP test hatası: ' . \$e->getMessage() . \"\n\";
