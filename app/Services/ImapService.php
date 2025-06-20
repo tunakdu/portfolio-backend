@@ -18,11 +18,20 @@ class ImapService
 
     public function __construct()
     {
-        $this->host = env('IMAP_HOST');
-        $this->port = env('IMAP_PORT', 993);
-        $this->username = env('IMAP_USERNAME');
-        $this->password = env('IMAP_PASSWORD');
-        $this->encryption = env('IMAP_ENCRYPTION', 'ssl');
+        $this->host = config('mail.imap.host') ?? env('IMAP_HOST');
+        $this->port = config('mail.imap.port') ?? env('IMAP_PORT', 993);
+        $this->username = config('mail.imap.username') ?? env('IMAP_USERNAME');
+        $this->password = config('mail.imap.password') ?? env('IMAP_PASSWORD');
+        $this->encryption = config('mail.imap.encryption') ?? env('IMAP_ENCRYPTION', 'ssl');
+        
+        // Debug için null değerleri kontrol et
+        if (empty($this->username) || empty($this->password)) {
+            Log::warning('IMAP credentials boş', [
+                'host' => $this->host,
+                'username' => $this->username ? 'SET' : 'NULL',
+                'password' => $this->password ? 'SET' : 'NULL'
+            ]);
+        }
     }
 
     /**

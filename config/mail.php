@@ -116,4 +116,22 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | IMAP Configuration for Email Sync
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for IMAP email synchronization service.
+    | Used to fetch incoming emails from mail server.
+    |
+    */
+
+    'imap' => [
+        'host' => env('IMAP_HOST'),
+        'port' => env('IMAP_PORT', 993),
+        'username' => env('IMAP_USERNAME'),
+        'password' => env('IMAP_PASSWORD'),
+        'encryption' => env('IMAP_ENCRYPTION', 'ssl'),
+    ],
+
 ];
