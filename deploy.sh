@@ -25,12 +25,27 @@ deploy() {
     echo "📥 Git pull"
     git pull origin master
     
+    echo "🔍 Git durumu kontrol et"
+    git status --porcelain
+    echo "📋 Son commit bilgisi"
+    git log -1 --oneline
+    
     echo "📦 Composer install"
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
     
     echo "🎨 NPM install ve build"
     npm install --production
+    
+    echo "🏗️ Vite build başlatılıyor"
     npm run build
+    
+    echo "📁 Build dosyaları kontrol et"
+    if [ -d "public/build" ]; then
+        echo "✅ Build dosyaları mevcut"
+        ls -la public/build/ | head -5
+    else
+        echo "⚠️ Build dosyaları bulunamadı"
+    fi
     
     echo "🧹 Cache temizle"
     php artisan config:clear || true
@@ -79,8 +94,20 @@ deploy() {
     
     echo "🚀 Supervisor başlat"
     sudo supervisorctl start laravel-worker:* laravel-scheduler || true
-    sleep 2
+    sleep 3
+    
+    echo "📊 Supervisor durumu kontrol et"
     sudo supervisorctl status | grep laravel
+    
+    # Servisler çalışıyor mu kontrol et
+    if sudo supervisorctl status | grep -q "laravel.*RUNNING"; then
+        echo "✅ Laravel servisleri çalışıyor"
+    else
+        echo "⚠️ Laravel servisleri başlatılamadı, yeniden dene"
+        sudo supervisorctl restart laravel-worker:* laravel-scheduler || true
+        sleep 2
+        sudo supervisorctl status | grep laravel
+    fi
     
     echo "🔄 Queue restart"
     php artisan queue:restart

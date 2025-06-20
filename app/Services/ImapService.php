@@ -225,8 +225,8 @@ class ImapService
             $body = mb_convert_encoding($body, 'UTF-8', 'auto');
         }
 
-        // Minimum uzunluk kontrolü
-        if (strlen($body) < 10) {
+        // Minimum uzunluk kontrolü - daha esnek
+        if (strlen(trim($body)) < 3) {
             $body = '[Email içeriği okunamadı veya çok kısa]';
         }
 
