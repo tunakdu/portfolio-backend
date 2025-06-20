@@ -194,7 +194,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2, Rss, Newspaper, Menu, X } from 'lucide-vue-next';
+import { Home, User, FolderOpen, Mail, Settings, MessageSquare, PlusCircle, BarChart3, LogOut, Code2, Rss, Newspaper, Menu, X, Search } from 'lucide-vue-next';
 import { useAuth } from '../composables/useAuth.js';
 import Swal from 'sweetalert2';
 
@@ -221,6 +221,7 @@ const adminItems = [
   { icon: FolderOpen, href: "/admin/projects", label: "Projeler", color: "from-purple-400 via-violet-500 to-indigo-500" },
   { icon: Newspaper, href: "/admin/articles", label: "Makaleler", color: "from-teal-400 via-cyan-500 to-blue-500" },
   { icon: MessageSquare, href: "/admin/messages", label: "Mesajlar", color: "from-sky-400 via-blue-500 to-indigo-500" },
+  { icon: Search, href: "/admin/seo", label: "SEO", color: "from-green-400 via-emerald-500 to-teal-500" },
   { icon: Settings, href: "/admin/settings", label: "Ayarlar", color: "from-slate-400 via-gray-500 to-zinc-500" },
 ];
 

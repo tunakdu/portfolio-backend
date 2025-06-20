@@ -77,6 +77,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // CV Management Routes
     Route::apiResource('experiences', App\Http\Controllers\Api\ExperienceController::class);
     Route::apiResource('education', App\Http\Controllers\Api\EducationController::class);
+    
+    // SEO Management Routes
+    Route::get('/seo', [App\Http\Controllers\Admin\SEOController::class, 'index']);
+    Route::put('/seo', [App\Http\Controllers\Admin\SEOController::class, 'update']);
 });
 
 // Bu rota /auth/me ile aynı işi görüyor, gelecekte birleştirilebilir.

@@ -15,6 +15,7 @@ import ArticleForm from '../views/admin/ArticleForm.vue';
 import ArticleImport from '../views/admin/ArticleImport.vue';
 import AdminExperience from '../views/admin/Experience.vue';
 import AdminEducation from '../views/admin/Education.vue';
+import AdminSEO from '../views/admin/SEO.vue';
 import BlogList from '../views/Blog.vue';
 import BlogDetail from '../views/BlogDetail.vue';
 import { useAuth } from '../composables/useAuth';
@@ -128,6 +129,12 @@ const routes = [
         path: '/admin/cv/education',
         name: 'AdminEducation',
         component: AdminEducation,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/admin/seo',
+        name: 'AdminSEO',
+        component: AdminSEO,
         meta: { requiresAuth: true },
     },
 ];

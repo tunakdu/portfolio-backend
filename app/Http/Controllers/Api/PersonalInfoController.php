@@ -27,6 +27,24 @@ class PersonalInfoController extends Controller
      */
     public function getByCategory($category)
     {
+        // SEO kategorisi için SiteSetting'den çek
+        if ($category === 'seo') {
+            $seoSettings = \App\Models\SiteSetting::whereIn('key', [
+                'meta_description', 'meta_keywords', 'meta_author', 'meta_robots',
+                'og_title', 'og_description', 'og_image', 'og_type', 'og_locale',
+                'twitter_card', 'twitter_site', 'twitter_creator', 'twitter_title', 'twitter_description', 'twitter_image',
+                'schema_type', 'schema_name', 'schema_job_title', 'schema_url', 'schema_same_as',
+                'canonical_url', 'sitemap_url', 'robots_txt',
+                'google_site_verification', 'bing_site_verification', 'yandex_site_verification',
+                'favicon_url', 'apple_touch_icon', 'theme_color', 'msapplication_tilecolor'
+            ])->get();
+            
+            return response()->json([
+                'category' => $category,
+                'settings' => $seoSettings
+            ]);
+        }
+        
         $data = PersonalInfo::getByCategory($category);
         
         return response()->json([
