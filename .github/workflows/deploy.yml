@@ -20,40 +20,17 @@ jobs:
         script: |
           cd /home/tunakdu/web/akduhan.com/public_html
 
-          # Create secure backup of .env file
-          BACKUP_FILE=".env.backup.$(date +%Y%m%d_%H%M%S)"
-          cp .env "$BACKUP_FILE"
-          
-          # Make .env temporarily read-only
-          chmod 444 .env
-          
-          # Reset any git tracking of .env
-          git update-index --assume-unchanged .env || true
-          
-          # Stash any local changes to prevent conflicts
-          git stash || true
-          
-          # Git pull latest changes
+          # Git pull latest changes (sadece kodu güncelle)
           git pull origin master
-          
-          # Force restore .env file from backup (ignore any git changes)
-          cp "$BACKUP_FILE" .env
-          chmod 644 .env
-          
-          # Ensure .env is never tracked by git going forward
-          git update-index --assume-unchanged .env
-          
-          # Remove old backup files (keep last 5)
-          ls -t .env.backup.* 2>/dev/null | tail -n +6 | xargs rm -f || true
 
-          # Install/Update Composer dependencies
-          composer install --no-dev --optimize-autoloader
+          # Install/Update Composer dependencies (production optimized)
+          composer install --no-dev --optimize-autoloader --no-interaction
 
           # Install/Update NPM dependencies and build assets
-          npm install
+          npm install --production
           npm run build
 
-          # Clear caches BEFORE running migrations
+          # Clear application caches
           php artisan config:clear
           php artisan cache:clear
           php artisan view:clear
@@ -61,13 +38,6 @@ jobs:
 
           # Run database migrations
           php artisan migrate --force
-
-          # Create storage symlink if not exists
-          php artisan storage:link
-
-          # Set proper permissions
-          chmod -R 775 storage/
-          chmod -R 775 bootstrap/cache/
 
           # Cache optimizations for production
           php artisan config:cache
