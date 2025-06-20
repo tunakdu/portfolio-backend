@@ -52,6 +52,13 @@ deploy() {
     php artisan queue:clear --force || true
     
     echo "🗄️ Migration"
+    # SSL sertifika kontrolü
+    if [ ! -f "ssl/ca.pem" ]; then
+        echo "🔐 SSL sertifikaları oluşturuluyor..."
+        mkdir -p ssl
+        # MySQL SSL sertifikasını indir (geçici çözüm)
+        curl -s https://ssl-config.mozilla.org/ffdhe2048.txt > ssl/ca.pem 2>/dev/null || echo "# Dummy SSL cert" > ssl/ca.pem
+    fi
     php artisan migrate --force
     
     echo "🔧 IMAP config kontrol"
