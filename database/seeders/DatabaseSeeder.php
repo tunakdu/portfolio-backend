@@ -17,11 +17,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Admin Kullanıcısı
-        User::create([
-            'name' => 'Tunahan Akduhan',
-            'email' => 'admin@tunahanakduhan.com',
-            'password' => Hash::make('password123'),
-            'email_verified_at' => now()
+        $this->call([
+            AdminUserSeeder::class,
         ]);
 
         // 2. Kategoriler
@@ -310,7 +307,7 @@ class DatabaseSeeder extends Seeder
         }
 
         echo "✅ Tüm tablolar başarıyla dolduruldu!\n";
-        echo "👤 Admin: admin@tunahanakduhan.com / password123\n";
+        echo "👤 Admin: t@a.com / LcvrtVsvs16$\n";
         echo "📊 Kategoriler: " . count($categories) . " adet\n";
         echo "🚀 Projeler: " . count($projects) . " adet\n";
         echo "💪 Yetenekler: " . count($skills) . " adet\n";
