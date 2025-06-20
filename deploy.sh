@@ -28,6 +28,10 @@ deploy() {
     echo "📦 Composer install"
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
     
+    echo "🎨 NPM install ve build"
+    npm install --production
+    npm run build
+    
     echo "🧹 Cache temizle"
     php artisan config:clear || true
     php artisan cache:clear || true
@@ -65,7 +69,7 @@ deploy() {
     echo "📁 Dosya izinleri"
     chown -R tunakdu:www-data ./
     chmod -R 755 ./
-    chmod -R 775 storage/ bootstrap/cache/
+    chmod -R 775 storage/ bootstrap/cache/ public/build/
     chmod +x artisan
     
     echo "⚡ Cache oluştur"
