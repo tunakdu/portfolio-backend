@@ -20,6 +20,10 @@ jobs:
         script: |
           cd /home/tunakdu/web/akduhan.com/public_html
 
+          # Supervisor worker'larını durdur (deployment sırasında)
+          echo "🔄 Supervisor worker'ları durduruluyor..."
+          sudo supervisorctl stop laravel-worker:* || true
+
           # Git pull latest changes (sadece kodu güncelle)
           git pull origin master
 
@@ -62,5 +66,14 @@ jobs:
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
+
+          # Supervisor worker'larını yeniden başlat
+          echo "🚀 Supervisor worker'ları yeniden başlatılıyor..."
+          sudo supervisorctl reread
+          sudo supervisorctl update
+          sudo supervisorctl start laravel-worker:*
+
+          # Worker durumunu kontrol et
+          sudo supervisorctl status
 
           echo "🚀 Deployment completed successfully!"
