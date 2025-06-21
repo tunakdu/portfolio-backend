@@ -54,6 +54,9 @@ deploy() {
     echo "🗄️ Migration"
     php artisan migrate --force
     
+    echo "🌱 Seeder çalıştır"
+    php artisan db:seed --class=SEOSettingsSeeder --force
+    
     echo "🔧 IMAP config kontrol"
     if ! grep -q "imap.*=>" config/mail.php; then
         echo "IMAP section ekleniyor..."
