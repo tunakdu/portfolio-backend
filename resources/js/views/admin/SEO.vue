@@ -289,11 +289,8 @@ export default {
         const response = await axios.get('/api/seo')
         
         if (response.data.settings) {
-          Object.keys(response.data.settings).forEach(key => {
-            if (settings.value.hasOwnProperty(key)) {
-              settings.value[key] = response.data.settings[key] || ''
-            }
-          })
+          // API'den gelen değerleri direkt assign et
+          settings.value = { ...settings.value, ...response.data.settings }
         }
       } catch (error) {
         console.error('SEO ayarları yüklenirken hata:', error)
