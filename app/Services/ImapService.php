@@ -103,46 +103,23 @@ class ImapService
     }
 
     /**
-     * Benzersiz sistem message ID oluştur
+     * IMAP UID bazlı benzersiz message ID oluştur
      */
-    protected function generateMessageId($header, $fromEmail, $subject)
+    protected function generateMessageId($uid, $fromEmail, $subject)
     {
-        // Sistem bazlı benzersiz ID oluştur
-        $timestamp = isset($header->udate) ? $header->udate : time();
-        $dateString = date('Y-m-d H:i:s', $timestamp);
-        
-        // Email özeti için hash oluştur
-        $contentHash = md5($fromEmail . '|' . $subject . '|' . $dateString);
-        
-        // Sistem ID formatı: PORTFOLIO_YYYYMMDD_HASH
-        $systemId = 'PORTFOLIO_' . date('Ymd', $timestamp) . '_' . substr($contentHash, 0, 12);
-        
-        return $systemId;
+        // IMAP UID'sini kullan - bu zaten benzersiz
+        return 'IMAP_UID_' . $uid;
     }
 
     /**
-     * E-posta duplikasyon kontrolü - basit ve etkili
+     * E-posta duplikasyon kontrolü - sadece IMAP UID ile
      */
     protected function isDuplicateMessage($messageId, $fromEmail, $subject, $messageDate)
     {
-        // 1. Sistem Message-ID ile kontrol (en güvenilir)
+        // Sadece IMAP UID bazlı Message-ID ile kontrol - bu %100 güvenilir
         $existing = Message::where('message_id', $messageId)->first();
         if ($existing) {
-            Log::info("Duplikasyon tespit edildi (Message-ID): {$messageId} - {$subject}");
-            return true;
-        }
-
-        // 2. Email + Subject + Tarih kombinasyonu (1 saat tolerans)
-        $dateStart = $messageDate->copy()->subHour();
-        $dateEnd = $messageDate->copy()->addHour();
-        
-        $existing = Message::where('email', $fromEmail)
-            ->where('subject', $subject)
-            ->whereBetween('message_date', [$dateStart, $dateEnd])
-            ->first();
-
-        if ($existing) {
-            Log::info("Duplikasyon tespit edildi (Email+Subject+Date): {$fromEmail} - {$subject}");
+            Log::info("Bu email zaten mevcut (UID): {$messageId} - {$subject}");
             return true;
         }
 
@@ -303,8 +280,8 @@ class ImapService
                         // Date parsing
                         $messageDate = isset($header->date) ? Carbon::parse($header->date) : Carbon::now();
 
-                        // Benzersiz Message-ID oluştur/al
-                        $messageId = $this->generateMessageId($header, $fromEmail, $subject);
+                        // Benzersiz Message-ID oluştur (IMAP UID bazlı)
+                        $messageId = $this->generateMessageId($uid, $fromEmail, $subject);
 
                         // Duplikasyon kontrolü
                         if ($this->isDuplicateMessage($messageId, $fromEmail, $subject, $messageDate)) {
@@ -442,7 +419,7 @@ class ImapService
             $from = isset($header->from[0]) ? $header->from[0] : null;
             $fromEmail = $from ? $from->mailbox . '@' . $from->host : 'unknown@example.com';
 
-            $messageId = $this->generateMessageId($header, $fromEmail, $subject);
+            $messageId = $this->generateMessageId($uid, $fromEmail, $subject);
             $threadId = $this->generateThreadId($subject, $fromEmail);
 
             $this->disconnect();
