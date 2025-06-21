@@ -38,4 +38,19 @@ jobs:
           chmod +x deploy.sh
           ./deploy.sh
           
+          # SEO verilerini kontrol et ve debug
+          echo "🔍 SEO verileri kontrol ediliyor..."
+          php artisan tinker --execute="
+          echo 'SEO kayıt sayısı: ' . App\Models\SiteSetting::whereIn('key', ['meta_description', 'meta_keywords'])->count() . PHP_EOL;
+          \$desc = App\Models\SiteSetting::where('key', 'meta_description')->first();
+          if(\$desc) {
+            echo 'Meta description: ' . substr(\$desc->value, 0, 50) . '...' . PHP_EOL;
+          } else {
+            echo 'Meta description bulunamadı!' . PHP_EOL;
+            echo 'SEO Seeder tekrar çalıştırılıyor...' . PHP_EOL;
+            Artisan::call('db:seed', ['--class' => 'SEOSettingsSeeder', '--force' => true]);
+            echo 'Seeder tamamlandı.' . PHP_EOL;
+          }
+          "
+          
           echo "✅ GitHub Actions deployment completed!"
