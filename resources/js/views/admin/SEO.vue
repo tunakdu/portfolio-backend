@@ -286,37 +286,17 @@ export default {
 
     const fetchSettings = async () => {
       try {
-        // Auth token kontrolü
-        const token = localStorage.getItem('token')
-        if (!token) {
-          console.error('Auth token bulunamadı')
-          return
-        }
-
-        const response = await axios.get('/api/seo', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-        console.log('SEO API Response:', response.data)
+        const response = await axios.get('/api/seo')
         
-        // API'den gelen ayarları doğrudan settings objesine aktar
         if (response.data.settings) {
           Object.keys(response.data.settings).forEach(key => {
             if (settings.value.hasOwnProperty(key)) {
               settings.value[key] = response.data.settings[key] || ''
-              console.log(`Setting ${key}:`, response.data.settings[key])
             }
           })
-          console.log('Final settings:', settings.value)
         }
       } catch (error) {
         console.error('SEO ayarları yüklenirken hata:', error)
-        if (error.response) {
-          console.error('Error response:', error.response.data)
-          console.error('Error status:', error.response.status)
-        }
       } finally {
         loading.value = false
       }
@@ -325,30 +305,12 @@ export default {
     const updateSettings = async () => {
       saving.value = true
       try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          console.error('Auth token bulunamadı')
-          return
-        }
-
         await axios.put('/api/seo', {
           settings: settings.value
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
         })
-
-        // Başarı mesajı göster
         alert('SEO ayarları başarıyla güncellendi!')
       } catch (error) {
         console.error('SEO ayarları güncellenirken hata:', error)
-        if (error.response) {
-          console.error('Error response:', error.response.data)
-          console.error('Error status:', error.response.status)
-        }
         alert('SEO ayarları güncellenirken bir hata oluştu.')
       } finally {
         saving.value = false

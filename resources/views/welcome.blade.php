@@ -30,7 +30,7 @@
         
         <!-- Additional Meta Tags -->
         <link rel="canonical" id="canonical-url" href="{{ url()->current() }}">
-        <link rel="icon" id="favicon" href="/favicon.ico" type="image/x-icon">
+        <link rel="icon" id="favicon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" id="apple-touch-icon" href="/images/apple-touch-icon.png">
         <meta name="theme-color" id="theme-color" content="#3B82F6">
         <meta name="msapplication-TileColor" content="#3B82F6">
