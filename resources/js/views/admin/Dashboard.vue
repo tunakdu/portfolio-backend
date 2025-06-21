@@ -104,7 +104,7 @@
         
         <!-- Visitors Chart -->
         <div class="col-span-1 lg:col-span-2 modern-card p-6">
-          <div class="flex justify-between items-center mb-6">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center">
               <BarChart3 class="w-5 h-5 mr-2" />
               Ziyaretçi Grafiği
@@ -112,23 +112,63 @@
             <select 
               v-model="chartDays" 
               @change="loadVisitorsChart"
-              class="text-sm border border-gray-300 rounded-md px-3 py-1"
+              class="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="7">Son 7 Gün</option>
               <option value="14">Son 14 Gün</option>
               <option value="30">Son 30 Gün</option>
             </select>
           </div>
-          <!-- Simple chart placeholder -->
-          <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-            <div v-if="chartLoading" class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <div v-else class="space-y-2">
-              <div class="flex space-x-2">
-                <div v-for="(data, index) in visitorsChart" :key="index" class="bg-blue-500 rounded-t" 
-                     :style="`height: ${Math.max(data.visitors * 3, 10)}px; width: 20px;`">
+          
+          <!-- Responsive Chart Container -->
+          <div class="h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+            <div v-if="chartLoading" class="h-full flex items-center justify-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+            <div v-else-if="visitorsChart.length === 0" class="h-full flex items-center justify-center">
+              <div class="text-center text-gray-500">
+                <BarChart3 class="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p class="text-sm">Henüz veri bulunmuyor</p>
+              </div>
+            </div>
+            <div v-else class="h-full p-4">
+              <!-- Chart Area -->
+              <div class="h-full flex items-end justify-center space-x-1 sm:space-x-2">
+                <div 
+                  v-for="(data, index) in visitorsChart" 
+                  :key="index" 
+                  class="flex flex-col items-center group relative"
+                  :style="`width: ${Math.max(100 / visitorsChart.length - 1, 8)}%`"
+                >
+                  <!-- Bar -->
+                  <div 
+                    class="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-300 hover:from-blue-700 hover:to-blue-500 min-h-[8px] w-full"
+                    :style="`height: ${Math.max((data.visitors / Math.max(...visitorsChart.map(d => d.visitors)) * 180), 8)}px`"
+                  ></div>
+                  
+                  <!-- Date Label -->
+                  <span class="text-xs text-gray-600 mt-2 transform -rotate-45 origin-top-left whitespace-nowrap">
+                    {{ formatChartDate(data.date) }}
+                  </span>
+                  
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                    {{ data.visitors }} ziyaretçi<br>{{ formatChartDate(data.date, true) }}
+                  </div>
                 </div>
               </div>
-              <div class="text-xs text-gray-500 text-center">Son {{ chartDays }} günlük ziyaretçi verileri</div>
+            </div>
+          </div>
+          
+          <!-- Chart Summary -->
+          <div class="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
+            <div class="flex items-center">
+              <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+              <span>Toplam: {{ visitorsChart.reduce((sum, data) => sum + data.visitors, 0) }} ziyaretçi</span>
+            </div>
+            <div class="flex items-center">
+              <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+              <span>Ortalama: {{ Math.round(visitorsChart.reduce((sum, data) => sum + data.visitors, 0) / Math.max(visitorsChart.length, 1)) }} ziyaretçi/gün</span>
             </div>
           </div>
         </div>
@@ -291,6 +331,21 @@ const formatChange = (percent) => {
   if (percent === 0) return '±0%';
   const sign = percent > 0 ? '+' : '';
   return `${sign}${percent}%`;
+};
+
+const formatChartDate = (dateString, full = false) => {
+  const date = new Date(dateString);
+  if (full) {
+    return date.toLocaleDateString('tr-TR', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  }
+  return date.toLocaleDateString('tr-TR', { 
+    day: 'numeric', 
+    month: 'short' 
+  });
 };
 
 const handleLogout = async () => {
