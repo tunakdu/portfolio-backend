@@ -82,12 +82,32 @@ deploy() {
     chown -R tunakdu:www-data ./
     chmod -R 755 ./
     chmod -R 775 storage/ bootstrap/cache/ public/build/
+    
+    # Article resimleri için özel izinler
+    if [ -d "storage/app/public/articles" ]; then
+        chmod -R 775 storage/app/public/articles/
+        chown -R tunakdu:www-data storage/app/public/articles/
+        echo "✅ Article resimleri korundu: $(ls -la storage/app/public/articles/ | wc -l) dosya"
+    else
+        mkdir -p storage/app/public/articles/
+        chmod 775 storage/app/public/articles/
+        echo "📁 Article klasörü oluşturuldu"
+    fi
+    
     chmod +x artisan
     
     echo "⚡ Cache oluştur"
     php artisan config:cache
     php artisan route:cache
     php artisan view:cache
+    
+    echo "🔗 Storage link kontrol"
+    if [ ! -L "public/storage" ]; then
+        php artisan storage:link
+        echo "✅ Storage link oluşturuldu"
+    else
+        echo "✅ Storage link mevcut"
+    fi
     
     echo "🚀 Supervisor başlat"
     sudo supervisorctl start laravel-worker:* laravel-scheduler || true

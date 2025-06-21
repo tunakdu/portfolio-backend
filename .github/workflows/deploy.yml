@@ -24,9 +24,9 @@ jobs:
           # Backup .env
           cp .env .env_backup 2>/dev/null || true
           
-          # Git update (protect SSL certificates)
+          # Git update (protect important files and uploads)
           git reset --hard HEAD
-          git clean -fd -e .env -e storage/ -e ssl/
+          git clean -fd -e .env -e storage/app/public/articles/ -e storage/logs/ -e ssl/
           git pull origin master
           
           # Restore .env
