@@ -121,7 +121,7 @@
           </div>
           
           <!-- Responsive Chart Container -->
-          <div class="h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+          <div class="h-80 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden">
             <div v-if="chartLoading" class="h-full flex items-center justify-center">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -131,24 +131,29 @@
                 <p class="text-sm">Henüz veri bulunmuyor</p>
               </div>
             </div>
-            <div v-else class="h-full p-4">
-              <!-- Chart Area -->
-              <div class="h-full flex items-end justify-center space-x-1 sm:space-x-2">
+            <div v-else class="h-full p-4 pb-12">
+              <!-- Chart Area - Reserve space for labels -->
+              <div class="h-full flex items-end justify-center space-x-1">
                 <div 
                   v-for="(data, index) in visitorsChart" 
                   :key="index" 
-                  class="flex flex-col items-center group relative"
-                  :style="`width: ${Math.max(100 / visitorsChart.length - 1, 8)}%`"
+                  class="flex flex-col items-center group relative min-w-0"
+                  :class="visitorsChart.length > 14 ? 'w-4' : 'flex-1'"
                 >
                   <!-- Bar -->
                   <div 
-                    class="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-300 hover:from-blue-700 hover:to-blue-500 min-h-[8px] w-full"
-                    :style="`height: ${Math.max((data.visitors / Math.max(...visitorsChart.map(d => d.visitors)) * 180), 8)}px`"
+                    class="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-300 hover:from-blue-700 hover:to-blue-500 min-h-[8px] w-full mx-auto"
+                    :style="`height: ${Math.max((data.visitors / Math.max(...visitorsChart.map(d => d.visitors)) * 150), 8)}px; max-width: 24px;`"
                   ></div>
                   
-                  <!-- Date Label -->
-                  <span class="text-xs text-gray-600 mt-2 transform -rotate-45 origin-top-left whitespace-nowrap">
-                    {{ formatChartDate(data.date) }}
+                  <!-- Date Label - Only show for smaller datasets or every nth item -->
+                  <span 
+                    v-if="visitorsChart.length <= 14 || index % Math.ceil(visitorsChart.length / 10) === 0"
+                    class="text-xs text-gray-600 mt-2 text-center truncate w-full"
+                    :class="visitorsChart.length > 14 ? 'transform -rotate-45 origin-center' : ''"
+                    :title="formatChartDate(data.date, true)"
+                  >
+                    {{ visitorsChart.length > 14 ? formatChartDate(data.date).split(' ')[0] : formatChartDate(data.date) }}
                   </span>
                   
                   <!-- Tooltip -->

@@ -10,7 +10,7 @@ class SEOController extends Controller
 {
     public function index()
     {
-        $seoSettings = SiteSetting::whereIn('key', [
+        $seoKeys = [
             // Meta Tags
             'meta_description', 'meta_keywords', 'meta_author', 'meta_robots',
             // Open Graph
@@ -25,27 +25,33 @@ class SEOController extends Controller
             'google_site_verification', 'bing_site_verification', 'yandex_site_verification',
             // Additional
             'favicon_url', 'apple_touch_icon', 'theme_color', 'msapplication_tilecolor'
-        ])->get()->keyBy('key');
+        ];
+
+        $seoSettings = SiteSetting::whereIn('key', $seoKeys)->get()->keyBy('key');
+        
+        // Vue.js için düz format'ta döndür
+        $settings = [];
+        foreach ($seoKeys as $key) {
+            $settings[$key] = $seoSettings->has($key) ? $seoSettings[$key]->value : '';
+        }
 
         return response()->json([
-            'settings' => $seoSettings
+            'settings' => $settings
         ]);
     }
 
     public function update(Request $request)
     {
-        $request->validate([
-            'settings' => 'required|array',
-            'settings.*.key' => 'required|string',
-            'settings.*.value' => 'nullable|string'
+        $validatedData = $request->validate([
+            'settings' => 'required|array'
         ]);
 
-        foreach ($request->settings as $setting) {
+        foreach ($validatedData['settings'] as $key => $value) {
             SiteSetting::updateOrCreate(
-                ['key' => $setting['key']],
+                ['key' => $key],
                 [
-                    'value' => $setting['value'] ?? '',
-                    'type' => $this->getSettingType($setting['key'])
+                    'value' => $value ?? '',
+                    'type' => $this->getSettingType($key)
                 ]
             );
         }
