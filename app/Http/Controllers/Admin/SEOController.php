@@ -32,7 +32,7 @@ class SEOController extends Controller
         // Vue.js için düz format'ta döndür
         $settings = [];
         foreach ($seoKeys as $key) {
-            $settings[$key] = $seoSettings->has($key) ? $seoSettings[$key]->value : '';
+            $settings[$key] = isset($seoSettings[$key]) ? $seoSettings[$key]->value : '';
         }
 
         return response()->json([
