@@ -103,60 +103,46 @@ class ImapService
     }
 
     /**
-     * Benzersiz message ID oluştur
+     * Benzersiz sistem message ID oluştur
      */
     protected function generateMessageId($header, $fromEmail, $subject)
     {
-        // Önce email header'dan message-id'yi al
-        if (isset($header->message_id) && !empty(trim($header->message_id))) {
-            return trim($header->message_id);
-        }
-
-        // Message-ID yoksa benzersiz bir tane oluştur
+        // Sistem bazlı benzersiz ID oluştur
         $timestamp = isset($header->udate) ? $header->udate : time();
-        $uniqueId = md5($fromEmail . $subject . $timestamp . microtime(true));
-
-        return '<' . $uniqueId . '@' . parse_url($this->host, PHP_URL_HOST) . '>';
+        $dateString = date('Y-m-d H:i:s', $timestamp);
+        
+        // Email özeti için hash oluştur
+        $contentHash = md5($fromEmail . '|' . $subject . '|' . $dateString);
+        
+        // Sistem ID formatı: PORTFOLIO_YYYYMMDD_HASH
+        $systemId = 'PORTFOLIO_' . date('Ymd', $timestamp) . '_' . substr($contentHash, 0, 12);
+        
+        return $systemId;
     }
 
     /**
-     * E-posta duplikasyon kontrolü
+     * E-posta duplikasyon kontrolü - basit ve etkili
      */
     protected function isDuplicateMessage($messageId, $fromEmail, $subject, $messageDate)
     {
-        // 1. Message-ID ile kontrol (en güvenilir)
-        if ($messageId) {
-            $existing = Message::where('message_id', $messageId)->first();
-            if ($existing) {
-                Log::info("Duplikasyon tespit edildi (Message-ID): {$messageId} - {$subject}");
-                return true;
-            }
+        // 1. Sistem Message-ID ile kontrol (en güvenilir)
+        $existing = Message::where('message_id', $messageId)->first();
+        if ($existing) {
+            Log::info("Duplikasyon tespit edildi (Message-ID): {$messageId} - {$subject}");
+            return true;
         }
 
-        // 2. Email + Subject + Date kombinasyonu ile kontrol
-        $dateWindow = 5; // 5 dakika tolerans
+        // 2. Email + Subject + Tarih kombinasyonu (1 saat tolerans)
+        $dateStart = $messageDate->copy()->subHour();
+        $dateEnd = $messageDate->copy()->addHour();
+        
         $existing = Message::where('email', $fromEmail)
             ->where('subject', $subject)
-            ->where('message_date', '>=', $messageDate->copy()->subMinutes($dateWindow))
-            ->where('message_date', '<=', $messageDate->copy()->addMinutes($dateWindow))
+            ->whereBetween('message_date', [$dateStart, $dateEnd])
             ->first();
 
         if ($existing) {
             Log::info("Duplikasyon tespit edildi (Email+Subject+Date): {$fromEmail} - {$subject}");
-            return true;
-        }
-
-        // 3. Subject hash ile kontrol (case-insensitive, Re: vs olmadan)
-        $cleanSubject = preg_replace('/^(Re:|RE:|Fwd:|FWD:|AW:|Aw:)\s*/i', '', trim($subject));
-        $subjectHash = md5(strtolower($cleanSubject));
-
-        $existing = Message::where('email', $fromEmail)
-            ->whereRaw('MD5(LOWER(TRIM(REGEXP_REPLACE(subject, "^(Re:|RE:|Fwd:|FWD:|AW:|Aw:)[[:space:]]*", "")))) = ?', [$subjectHash])
-            ->where('message_date', '>=', $messageDate->copy()->subHours(12))
-            ->first();
-
-        if ($existing) {
-            Log::info("Duplikasyon tespit edildi (Subject Hash): {$fromEmail} - {$cleanSubject}");
             return true;
         }
 
@@ -225,9 +211,9 @@ class ImapService
             $body = mb_convert_encoding($body, 'UTF-8', 'auto');
         }
 
-        // Minimum uzunluk kontrolü - daha esnek
-        if (strlen(trim($body)) < 3) {
-            $body = '[Email içeriği okunamadı veya çok kısa]';
+        // Eğer hiç içerik yoksa boş string yerine bilgilendirici mesaj
+        if (empty(trim($body))) {
+            $body = '[Boş email]';
         }
 
         return $body;
