@@ -40,7 +40,14 @@ jobs:
           
           # SEO verilerini kontrol et ve debug
           echo "🔍 SEO verileri kontrol ediliyor..."
+          echo "📋 Veritabanı bağlantı bilgileri:"
+          grep -E "DB_|APP_ENV" .env | head -5
+          
           php artisan tinker --execute="
+          echo 'Environment: ' . config('app.env') . PHP_EOL;
+          echo 'Database: ' . config('database.default') . PHP_EOL;
+          echo 'DB Name: ' . config('database.connections.mysql.database') . PHP_EOL;
+          echo 'Toplam SiteSetting kayıt: ' . App\Models\SiteSetting::count() . PHP_EOL;
           echo 'SEO kayıt sayısı: ' . App\Models\SiteSetting::whereIn('key', ['meta_description', 'meta_keywords'])->count() . PHP_EOL;
           \$desc = App\Models\SiteSetting::where('key', 'meta_description')->first();
           if(\$desc) {
